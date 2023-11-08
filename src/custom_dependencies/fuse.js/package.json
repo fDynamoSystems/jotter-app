@@ -1,0 +1,17 @@
+{
+  "name": "fuse.js-jotter",
+  "author": {
+    "name": "fDynamo",
+    "email": "fontaine.dynamo@gmail.com"
+  },
+  "main": "./dist/fuse.common.js",
+  "module": "./dist/fuse.esm.js",
+  "unpkg": "./dist/fuse.js",
+  "jsdelivr": "./dist/fuse.js",
+  "typings": "./dist/fuse.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "version": "1.0"
+}

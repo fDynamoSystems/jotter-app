@@ -1,0 +1,33 @@
+.button {
+  background-color: var(--color-primary);
+  border-radius: 3px;
+  padding: 4px 12px;
+  border: none;
+
+  &:hover,
+  &:active {
+    background-color: var(--color-primary--active);
+  }
+
+  &:disabled {
+    background-color: var(--color-primary--disabled);
+  }
+}
+
+.dangerButton {
+  background-color: var(--color-danger);
+
+  &:hover,
+  &:active {
+    background-color: var(--color-danger--active);
+  }
+
+  &:disabled {
+    background-color: var(--color-danger--disabled);
+  }
+}
+
+.disabledButton {
+  cursor: initial;
+  opacity: 0.8;
+}

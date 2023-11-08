@@ -1,0 +1,59 @@
+:root,
+:host {
+  --color-font: black;
+  --color-background: white;
+  --color-accent: #dadada;
+  --color-accent-2: #797979;
+  --color-accent-3: #5e5e5e;
+  --color-primary: #6ac0fd;
+  --color-primary--active: #61b1ea;
+  --color-primary--disabled: rgb(69, 125, 166);
+  --color-primary--fade: #6ac0fd7a;
+
+  --color-danger: #e54b4b;
+  --color-danger--active: #ef6969;
+  --color-dange--disabled: rgb(154, 54, 54)
+  --z-index-level: 999999;
+  --font-primary: Inter, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :host,
+  :root {
+    --color-font: white;
+    --color-background: #242424;
+    --color-accent: #2f2f2f;
+    --color-accent-2: #a5a5a5;
+    --color-accent-3: #d2d2d2;
+  }
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/Inter-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/Inter-Bold.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+}
+
+* {
+  font-family: var(--font-primary);
+  color: var(--color-font);
+  font-size: 14px;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+button {
+  cursor: pointer;
+}
+
+textarea:focus, input:focus{
+  outline: none;
+}
