@@ -10,6 +10,12 @@ Our main tenets are speed, accessibility, and privacy.
 - Full text search on all of your notes.
 - A focus on both keyboard shortcuts and GUI to make Jotter best fit its tenets.
 
+## Demo
+
+![Jotter demo](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNXNpb3dkZzVndTB3aHhoOGFkN2hyeGV2dm1ybnY5ZDF1a3Y5dWY0ayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/q2eztUhfTXxEmw9xqY/giphy.gif)
+
+[Full demo link](https://www.youtube.com/watch?v=mXN4ESjrXS4)
+
 ## How to download Jotter
 
 For MacOS machines with the apple chip, you can download here: [Download link](https://drive.google.com/drive/folders/1KQnYjPTIShhzXK3_lDLYpXRLoTnWP5FM).
