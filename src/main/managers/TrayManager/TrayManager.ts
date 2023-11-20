@@ -38,7 +38,7 @@ export default class TrayManager {
         label: "New note",
         click: () => {
           this.windowManager.showAllWindows();
-          this.windowManager.openWriteWindowForNote();
+          this.windowManager.handleNewNote();
         },
       })
     );

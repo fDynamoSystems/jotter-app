@@ -97,6 +97,15 @@ export default class WindowManager {
   }
 
   /*
+  Resets a write window's contents for new notes or general resets
+  */
+  resetWriteWindow(wcId: number) {
+    const currWindow = this.wcToBrowserWindowMap[wcId];
+    this.revertWriteWindowSearcherIndex(wcId);
+    currWindow.webContents.send(IPC_MESSAGE.FROM_MAIN.RESET_WRITE_WINDOW);
+  }
+
+  /*
   SECTION: Focus on windows
   */
   focusSearchWindow() {
@@ -276,6 +285,14 @@ export default class WindowManager {
   }
 
   /*
+  SECTION: Utility
+  */
+  handleNewNote() {
+    const lastFocused = this.getLastFocusedWriteWindow();
+    if (lastFocused) this.resetWriteWindow(lastFocused.webContents.id);
+  }
+
+  /*
   SECTION: On window create functions
   */
   _onCommonWindowCreate = (createdWindow: BrowserWindow) => {
@@ -390,16 +407,14 @@ export default class WindowManager {
         // If no window to focus on last, we reset
         electronEvent.preventDefault();
 
-        // Reset representations of window
-        this.revertWriteWindowSearcherIndex(wcId);
-        this.writeWindowFocusHistory.push(wcId);
+        // Reset representations of window and contents
+        this.resetWriteWindow(wcId);
 
-        // Visually reset
+        // Reset size and position
         resetWriteWindow(createdWindow);
-        createdWindow.webContents.send(
-          IPC_MESSAGE.FROM_MAIN.SEND_NOTE_FOR_EDIT,
-          null
-        );
+
+        // Add to focus history
+        this.writeWindowFocusHistory.push(wcId);
       }
     });
 
@@ -448,6 +463,10 @@ export default class WindowManager {
   }
 
   /*
+  SECTION: Utility functions
+  */
+
+  /*
   SECTION: Menus
   */
   useMenu(windowName: "write" | "search" | "settings" | "intro" | "default") {
@@ -483,7 +502,7 @@ export default class WindowManager {
         {
           label: "New note",
           accelerator: KeyboardShortcuts.NEW_NOTE,
-          click: () => this.openWriteWindowForNote(),
+          click: () => this.handleNewNote(),
         },
         {
           label: "Write note",

@@ -47,7 +47,7 @@ const ResultItem = ({ item, isSelected, isWindowFocused }: ResultItemProps) => {
       // Check if item in viewport
       const rect = containerDivRef.current.getBoundingClientRect();
 
-      const TOP_PADDING = 65; // Padding for elements above search
+      const TOP_PADDING = 70; // Padding for elements above search
       const isVisible =
         rect.top >= TOP_PADDING &&
         rect.left >= 0 &&

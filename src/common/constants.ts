@@ -26,6 +26,7 @@ export const IPC_MESSAGE = {
     WINDOW_FOCUSED: "window-focused",
     RETRIGGER_SEARCH: "retrigger-search",
     SEND_NOTE_FOR_EDIT: "send-note-for-edit",
+    RESET_WRITE_WINDOW: "reset-write-window",
   },
 } as const;
 

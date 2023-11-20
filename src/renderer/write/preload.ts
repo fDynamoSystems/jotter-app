@@ -19,6 +19,10 @@ const WRITE_ELECTRON_API: WriteElectronAPI = {
     ipcRenderer.send(IPC_MESSAGE.FROM_RENDERER.RETRIGGER_SEARCH),
   onNoteEditRequest: (cb) =>
     ipcRenderer.on(IPC_MESSAGE.FROM_MAIN.SEND_NOTE_FOR_EDIT, cb),
+  onResetWriteWindowRequest: (cb) =>
+    ipcRenderer.on(IPC_MESSAGE.FROM_MAIN.RESET_WRITE_WINDOW, cb),
+  removeResetWriteWindowRequestListener: () =>
+    ipcRenderer.removeAllListeners(IPC_MESSAGE.FROM_MAIN.RESET_WRITE_WINDOW),
 };
 
 const COMMON_ELECTRON_API = getCommonPreloadFunctions();

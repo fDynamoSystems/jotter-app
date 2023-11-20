@@ -25,15 +25,25 @@ export default function WriteWindow() {
 
   useEffect(() => {
     window.writeElectronAPI.onNoteEditRequest((_event, noteToEdit) => {
-      if (noteToEdit) {
-        setNoteEditInfo(noteToEdit);
-        setWriteVal(noteToEdit.content);
-      } else {
-        setNoteEditInfo(null);
-        setWriteVal("");
-      }
+      setNoteEditInfo(noteToEdit);
+      setWriteVal(noteToEdit.content);
     });
   }, []);
+
+  useEffect(() => {
+    window.writeElectronAPI.onResetWriteWindowRequest(() => {
+      if (saveChangesTimerRef.current) {
+        clearTimeout(saveChangesTimerRef.current);
+        saveChanges(noteEditInfoRef.current, writeVal, false);
+      }
+      setNoteEditInfo(null);
+      setWriteVal("");
+    });
+
+    return () => {
+      window.writeElectronAPI.removeResetWriteWindowRequestListener();
+    };
+  }, [writeVal]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleGlobalKeyDown);
@@ -82,7 +92,8 @@ export default function WriteWindow() {
 
   async function saveChanges(
     noteEditInfo: NoteEditInfo | null,
-    writeVal: string
+    writeVal: string,
+    shouldUpdateCurrentNote: boolean = true
   ) {
     let newNoteEditInfo: NoteEditInfo | null = null;
     if (!noteEditInfo) {
@@ -94,7 +105,7 @@ export default function WriteWindow() {
       });
     }
 
-    setNoteEditInfo(newNoteEditInfo);
+    if (shouldUpdateCurrentNote) setNoteEditInfo(newNoteEditInfo);
   }
 
   const getWindowTitle = () => {

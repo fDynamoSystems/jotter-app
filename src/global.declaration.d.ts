@@ -15,8 +15,10 @@ export type WriteElectronAPI = {
   editNote: (noteEditInfo: NoteEditInfo) => Promise<NoteEditInfo | null>;
   retriggerSearch: () => void;
   onNoteEditRequest: (
-    cb: (_event: any, noteEditInfo: NoteEditInfo | null) => void
+    cb: (_event: any, noteEditInfo: NoteEditInfo) => void
   ) => void;
+  onResetWriteWindowRequest: (cb: (_event: any) => void) => void;
+  removeResetWriteWindowRequestListener: () => void;
 };
 
 export type SearchElectronAPI = {
