@@ -92,6 +92,10 @@ export default class IpcHandlers {
       IPC_MESSAGE.FROM_RENDERER.CONTEXT_MENU_RESULT_ITEM,
       this.contextMenuResultItem
     );
+    ipcMain.on(
+      IPC_MESSAGE.FROM_RENDERER.CLOSE_CURRENT_WINDOW,
+      this.closeCurrentWindow
+    );
   }
 
   private createNote = (
@@ -380,5 +384,9 @@ export default class IpcHandlers {
     ];
     const menu = Menu.buildFromTemplate(template);
     menu.popup({ window: BrowserWindow.fromWebContents(event.sender)! });
+  };
+
+  private closeCurrentWindow = () => {
+    this.windowManager.closeCurrentWindow();
   };
 }

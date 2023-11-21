@@ -34,6 +34,10 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.18",
+    "@mui/material": "^5.14.18",
     "auto-launch": "^5.0.6",
     "dotenv": "^16.3.1",
     "easymde": "^2.18.0",

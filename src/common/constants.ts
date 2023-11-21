@@ -21,6 +21,7 @@ export const IPC_MESSAGE = {
     CLOSE_INTRO: "close-intro",
     CONFIRM_AND_DELETE_NOTE: "confirm-and-delete-note",
     CONTEXT_MENU_RESULT_ITEM: "context-menu-result-item",
+    CLOSE_CURRENT_WINDOW: "close-current-window",
   },
   FROM_MAIN: {
     WINDOW_FOCUSED: "window-focused",

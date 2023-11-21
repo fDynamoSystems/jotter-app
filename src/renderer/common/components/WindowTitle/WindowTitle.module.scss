@@ -1,21 +1,46 @@
 .container {
   padding-top: 8px;
   padding-bottom: 4px;
-  min-height: 36px;
+  height: 36px;
+  flex-wrap: nowrap;
   width: 100%;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
   -webkit-app-region: drag;
-  overflow: hidden;
   cursor: move;
-
-  h1 {
-    font-weight: bold;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-    word-break: break-word;
-  }
   flex-shrink: 0;
+}
+
+$rightContainerWidth: 100px;
+.title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 80%;
+  font-weight: bold;
+}
+
+.rightContainer {
+  width: $rightContainerWidth;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+
+  .buttonClose {
+    width: 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+
+    .iconClose {
+      fill: var(--color-primary);
+    }
+
+    &:hover .iconClose {
+      fill: var(--color-primary--active);
+    }
+  }
 }

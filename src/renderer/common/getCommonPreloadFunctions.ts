@@ -19,6 +19,8 @@ const getCommonPreloadFunctions = (): CommonElectronAPI => {
       ipcRenderer.invoke(
         IPC_MESSAGE.FROM_RENDERER.GET_KEYBOARD_MODIFIERS_STATE
       ),
+    closeCurrentWindow: () =>
+      ipcRenderer.send(IPC_MESSAGE.FROM_RENDERER.CLOSE_CURRENT_WINDOW),
   };
 };
 

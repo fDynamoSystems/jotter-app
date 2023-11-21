@@ -66,6 +66,13 @@ export default class WindowManager {
     }
   }
 
+  closeCurrentWindow() {
+    const currentWindow = BrowserWindow.getFocusedWindow();
+    if (currentWindow && currentWindow.isClosable()) {
+      currentWindow.close();
+    }
+  }
+
   /*
   SECTION: Write window assignment and registration
   */

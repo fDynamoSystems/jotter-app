@@ -8,6 +8,7 @@ export type CommonElectronAPI = {
   focusWriteWindow: (searcherIndex: number) => void;
   closeOverlay: () => void;
   getKeyboardModifiersState: () => Promise<KeyboardModifiersState>;
+  closeCurrentWindow: () => void;
 };
 
 export type WriteElectronAPI = {

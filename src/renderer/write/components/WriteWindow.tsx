@@ -110,21 +110,20 @@ export default function WriteWindow() {
 
   const getWindowTitle = () => {
     if (writeVal.trim().length) {
-      const MAX_NOTE_TITLE_LENGTH = 40;
-      let title = getNoteTitleFromContent(writeVal);
-      if (title.length > MAX_NOTE_TITLE_LENGTH) {
-        title = title.substring(0, MAX_NOTE_TITLE_LENGTH) + "...";
-      }
-      return title;
+      return getNoteTitleFromContent(writeVal);
     }
 
     return DEFAULT_WINDOW_NAME;
   };
 
+  function handleClose() {
+    window.commonElectronAPI.closeCurrentWindow();
+  }
+
   return (
     <div className={styles.bgContainer}>
       <div className={styles.container}>
-        <WindowTitle windowTitle={getWindowTitle()} />
+        <WindowTitle windowTitle={getWindowTitle()} onClose={handleClose} />
         <NoteTakingForm
           writeVal={writeVal}
           onChange={handleChange}
