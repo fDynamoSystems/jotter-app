@@ -16,7 +16,7 @@ const WINDOW_HEIGHT = 120;
 const getSearchWindowInitConfig = (): BrowserWindowConstructorOptions => {
   const screenBounds = getActiveScreenBounds();
   return {
-    x: Math.floor(screenBounds.x + 20),
+    x: Math.floor(screenBounds.x + (screenBounds.width - WINDOW_WIDTH) / 2),
     y: Math.floor(screenBounds.y + screenBounds.height * 0.15),
     minWidth: WINDOW_WIDTH,
     minHeight: WINDOW_HEIGHT,

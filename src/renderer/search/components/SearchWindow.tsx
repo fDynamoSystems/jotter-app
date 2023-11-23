@@ -197,10 +197,14 @@ export default function SearchWindow() {
     setQueryVal(newVal);
   }
 
+  function handleClose() {
+    window.commonElectronAPI.closeCurrentWindow();
+  }
+
   return (
     <div className={styles.bgContainer}>
       <div className={styles.container}>
-        <WindowTitle windowTitle="🔎 Search notes" />
+        <WindowTitle windowTitle="🔎 Search notes" onClose={handleClose} />
         <div className={styles.searchInputContainer}>
           <input
             type="text"

@@ -47,10 +47,13 @@ export default class ModeManager extends BaseManager {
 
     this.appMode = AppMode.WRITE;
     this.windowManager.closeAllWindows();
-    this.windowManager.openWriteWindowForNote();
+    this.windowManager.openUniqueWriteWindow();
   }
 
   switchToEditMode() {
-    console.warn("IMPLEMENT EDIT MODE!");
+    if (this.appMode === AppMode.EDIT) return;
+    this.appMode = AppMode.EDIT;
+    this.windowManager.closeAllWindows();
+    this.windowManager.openSearchWindow();
   }
 }

@@ -24,6 +24,7 @@ export default class WindowManager extends BaseManager {
   private introWindow: BrowserWindow | null = null;
   private isAppShown = false;
   private isWindowOpening = false;
+  private uniqueWriteWindow: BrowserWindow | null = null;
 
   /*
   SECTION: Open new windows
@@ -93,9 +94,25 @@ export default class WindowManager extends BaseManager {
   }
 
   async openSearchWindow() {
-    if (!this.searchWindow) {
-      this.searchWindow = await createSearchWindow(this._onSearchWindowCreate);
-    }
+    if (this.isWindowOpening) return;
+    this.isWindowOpening = true;
+
+    const newWindow = await createSearchWindow(this._onSearchWindowCreate);
+
+    this.isWindowOpening = false;
+
+    return newWindow;
+  }
+
+  async openUniqueWriteWindow() {
+    if (this.isWindowOpening) return;
+    this.isWindowOpening = true;
+
+    const newWindow = await createWriteWindow(this._onUniqueWriteWindowCreate);
+
+    this.isWindowOpening = false;
+
+    return newWindow;
   }
 
   /*
@@ -153,6 +170,8 @@ export default class WindowManager extends BaseManager {
   };
 
   _onSearchWindowCreate = (createdWindow: BrowserWindow) => {
+    this.searchWindow = createdWindow;
+
     createdWindow.on("focus", () => {
       createdWindow.webContents.send(
         IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
@@ -168,6 +187,54 @@ export default class WindowManager extends BaseManager {
       );
     });
 
+    createdWindow.on("close", () => {
+      this.searchWindow = null;
+      createdWindow.destroy();
+
+      if (this.modeManager.isAppInEditMode()) {
+        this.modeManager.switchToClosedMode();
+      }
+    });
+
+    createdWindow.show();
+    createdWindow.focus();
+
+    this._onCommonWindowCreate(createdWindow);
+  };
+
+  _onUniqueWriteWindowCreate = (createdWindow: BrowserWindow) => {
+    this.uniqueWriteWindow = createdWindow;
+    this.registerWriteWindow(createdWindow);
+
+    createdWindow.on("focus", () => {
+      createdWindow.webContents.send(
+        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
+        true
+      );
+
+      this.menuManager.useMenu(MenuName.write);
+    });
+
+    createdWindow.on("blur", () => {
+      createdWindow.webContents.send(
+        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
+        false
+      );
+    });
+
+    createdWindow.on("close", () => {
+      this.deregisterWriteWindow(createdWindow);
+      this.uniqueWriteWindow = null;
+      createdWindow.destroy();
+
+      if (this.modeManager.isAppInWriteMode()) {
+        this.modeManager.switchToClosedMode();
+      }
+    });
+
+    createdWindow.show();
+    createdWindow.focus();
+
     this._onCommonWindowCreate(createdWindow);
   };
 
@@ -179,6 +246,8 @@ export default class WindowManager extends BaseManager {
         IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
         true
       );
+
+      // Add to focus history
       const shouldUpdateFocusHistory =
         !this.writeWindowFocusHistory.length ||
         (this.writeWindowFocusHistory.length &&
@@ -206,10 +275,6 @@ export default class WindowManager extends BaseManager {
 
       this.deregisterWriteWindow(createdWindow);
       createdWindow.destroy();
-
-      if (this.modeManager.isAppInWriteMode()) {
-        this.modeManager.switchToClosedMode();
-      }
     });
 
     this._onCommonWindowCreate(createdWindow);
