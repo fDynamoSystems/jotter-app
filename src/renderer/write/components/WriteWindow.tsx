@@ -74,6 +74,7 @@ export default function WriteWindow() {
   ) {
     let newNoteEditInfo: NoteEditInfo | null = null;
     if (!noteEditInfo) {
+      if (!writeVal) return;
       newNoteEditInfo = await window.writeElectronAPI.createNote(writeVal);
     } else {
       newNoteEditInfo = await window.writeElectronAPI.editNote({
