@@ -6,6 +6,10 @@ import { NoteEditInfo } from "@renderer/common/types";
 import settings from "electron-settings";
 import { ScanAllFilesResult, scanAllNoteFiles } from "./scanAllNoteFiles";
 import WindowManager from "./managers/WindowManager";
+import { ManagerList } from "./managers/BaseManager";
+import ModeManager from "./managers/ModeManager";
+import MenuManager from "./managers/MenuManager";
+import TrayManager from "./managers/TrayManager";
 
 const { ipcMain } = require("electron");
 
@@ -13,15 +17,21 @@ export default class IpcHandlers {
   private searcherService: SearcherService;
   private filerService: FilerService;
   private windowManager: WindowManager;
+  private trayManager: TrayManager;
+  private menuManager: MenuManager;
+  private modeManager: ModeManager;
 
   constructor(
     searcher: SearcherService,
     filer: FilerService,
-    windowManager: WindowManager
+    managerList: ManagerList
   ) {
     this.searcherService = searcher;
     this.filerService = filer;
-    this.windowManager = windowManager;
+    this.windowManager = managerList[0];
+    this.trayManager = managerList[1];
+    this.menuManager = managerList[2];
+    this.modeManager = managerList[3];
 
     // Two way handlers
     ipcMain.handle(IPC_MESSAGE.FROM_RENDERER.CREATE_NOTE, this.createNote);
@@ -257,12 +267,9 @@ export default class IpcHandlers {
 
     await settings.set(APP_SETTINGS.NOTES_FOLDER_PATH, newPath);
 
-    // Initialize windows
-    await this.windowManager.initializeMainWindows();
-
     const SHOW_DELAY = 50;
     setTimeout(() => {
-      this.windowManager.showAllWindows();
+      this.modeManager.switchToClosedMode();
     }, SHOW_DELAY);
     return true;
   };
@@ -323,7 +330,7 @@ export default class IpcHandlers {
     // Register new shortcut
     settings.set(APP_SETTINGS.WRITE_ENTRY_SHORTCUT, newShortcut);
     globalShortcut.register(newShortcut, () =>
-      this.windowManager.handleWriteEntry()
+      this.modeManager.switchToWriteMode()
     );
   };
 

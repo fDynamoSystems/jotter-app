@@ -1,10 +1,7 @@
 import { IPC_MESSAGE } from "@src/common/constants";
 import { BrowserWindow, app } from "electron";
 import { createSearchWindow } from "../../windows/createSearchWindow";
-import {
-  createWriteWindow,
-  resetWriteWindow,
-} from "../../windows/createWriteWindow";
+import { createWriteWindow } from "../../windows/createWriteWindow";
 import { KeyboardModifiersState } from "@src/common/types";
 import { NoteEditInfo } from "@renderer/common/types";
 import { createSettingsWindow } from "../../windows/createSettingsWindow";
@@ -13,7 +10,7 @@ import BaseManager from "../BaseManager";
 import { MenuName } from "../MenuManager/MenuManager";
 
 /*
-WindowManager handles most window operations. All windows are created through the main window manager object.
+WINDOW MANAFER handles most window operations, e.g opening, closing, and tracking windows.
 
 NOTES:
 - wcId stands for webContents id
@@ -31,7 +28,6 @@ export default class WindowManager extends BaseManager {
   private introWindow: BrowserWindow | null = null;
   private isAppInitialized = false;
   private isAppShown = false;
-  private isAppClosable = false;
   private isWindowOpening = false;
 
   /*
@@ -72,6 +68,13 @@ export default class WindowManager extends BaseManager {
     if (currentWindow && currentWindow.isClosable()) {
       currentWindow.close();
     }
+  }
+
+  closeAllWindows() {
+    this.getAllOpenWindowsList().forEach((window) => {
+      window.setClosable(true);
+      window.close();
+    });
   }
 
   /*
@@ -162,7 +165,6 @@ export default class WindowManager extends BaseManager {
   allowClosureOfAllWindows() {
     const windows = this.getAllOpenWindowsList();
     windows.forEach((window) => window.setClosable(true));
-    this.isAppClosable = true;
   }
 
   /*
@@ -398,31 +400,17 @@ export default class WindowManager extends BaseManager {
       );
     });
 
-    createdWindow.on("close", (electronEvent) => {
+    createdWindow.on("close", () => {
       // Remove from focus history
       this.writeWindowFocusHistory = this.writeWindowFocusHistory.filter(
         (otherIds) => otherIds !== wcId
       );
 
-      if (this.isAppClosable) return;
+      this.deregisterWriteWindow(createdWindow);
+      createdWindow.destroy();
 
-      const lastFocusedWindow = this.getLastFocusedWriteWindow();
-      if (lastFocusedWindow) {
-        lastFocusedWindow.focus();
-        this.deregisterWriteWindow(createdWindow);
-        createdWindow.destroy();
-      } else {
-        // If no window to focus on last, we reset
-        electronEvent.preventDefault();
-
-        // Reset representations of window and contents
-        this.resetWriteWindow(wcId);
-
-        // Reset size and position
-        resetWriteWindow(createdWindow);
-
-        // Add to focus history
-        this.writeWindowFocusHistory.push(wcId);
+      if (this.modeManager.isAppInWriteMode()) {
+        this.modeManager.switchToClosedMode();
       }
     });
 
@@ -448,25 +436,5 @@ export default class WindowManager extends BaseManager {
 
   getKeyboardModifiersState() {
     return this.keyboardModifiersState;
-  }
-
-  /*
-  SECTION: Entry functions
-  */
-
-  handleWriteEntry() {
-    if (!this.isAppShown) {
-      this.showAllWindows();
-      this.focusLastFocusedWriteWindow();
-    } else {
-      this.hideAllWindows();
-    }
-  }
-
-  handleEditEntry() {
-    if (!this.isAppShown) {
-      this.showAllWindows();
-    }
-    this.focusSearchWindow();
   }
 }

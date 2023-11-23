@@ -2,12 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import styles from "./WriteWindow.module.scss";
 import "@renderer/common/styles/global.scss";
 import { COMMAND_PREFIXES, SAVE_CHANGES_DELAY } from "../constants";
-import NoteTakingForm from "@renderer/write/components/NoteTakingForm";
 import WindowTitle from "@renderer/common/components/WindowTitle";
 import { NoteEditInfo } from "@renderer/common/types";
 
 export default function WriteWindow() {
   const [writeVal, setWriteVal] = useState<string>("");
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
   const noteEditInfoRef = useRef<NoteEditInfo | null>(null);
   function setNoteEditInfo(newVal: NoteEditInfo | null) {
     noteEditInfoRef.current = newVal;
@@ -22,6 +23,7 @@ export default function WriteWindow() {
       setNoteEditInfo(noteToEdit);
       setWriteVal(noteToEdit.content);
     });
+    textAreaRef.current?.focus();
   }, []);
 
   useEffect(() => {
@@ -93,11 +95,13 @@ export default function WriteWindow() {
   return (
     <div className={styles.bgContainer}>
       <div className={styles.container}>
-        <WindowTitle windowTitle={""} onClose={handleClose} />
-        <NoteTakingForm
-          writeVal={writeVal}
-          onChange={handleChange}
-          placeholder="New note..."
+        <WindowTitle windowTitle={"✏️ Jotter"} onClose={handleClose} />
+        <textarea
+          className={styles.textArea}
+          value={writeVal}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder={"New note..."}
+          ref={textAreaRef}
         />
       </div>
     </div>

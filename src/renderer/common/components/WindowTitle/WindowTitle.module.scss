@@ -34,6 +34,7 @@ $rightContainerWidth: 100px;
     background: none;
     border: none;
     cursor: pointer;
+    outline: none;
 
     .iconClose:after {
       display: inline-block;
@@ -42,7 +43,7 @@ $rightContainerWidth: 100px;
       font-size: 24px;
     }
 
-    &:hover .iconClose {
+    &:hover .iconClose:after {
       color: var(--color-primary--active);
     }
   }

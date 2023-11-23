@@ -3,6 +3,9 @@ import { app, Menu, shell } from "electron";
 import defaultMenu from "electron-default-menu";
 import BaseManager from "../BaseManager";
 
+/*
+MENU MANAGER handles app menus. Context menus are note in scope.
+*/
 export enum MenuName {
   "write",
   "search",
@@ -49,31 +52,26 @@ export default class MenuManager extends BaseManager {
       label: "first",
       submenu: [
         {
-          label: "New note",
-          accelerator: KeyboardShortcuts.NEW_NOTE,
-          click: () => this.windowManager.handleNewNote(),
-        },
-        {
           label: "Write note",
           accelerator: KeyboardShortcuts.WRITE_NOTE,
-          click: () => this.windowManager.focusLastFocusedWriteWindow(),
+          click: () => this.modeManager.switchToWriteMode(),
         },
         { type: "separator" },
         {
           label: "Search notes",
           accelerator: KeyboardShortcuts.SEARCH_NOTES,
-          click: () => this.windowManager.focusSearchWindow(),
+          click: () => this.modeManager.switchToEditMode(),
         },
         { type: "separator" },
         {
           label: "Close",
           accelerator: KeyboardShortcuts.CLOSE_APP,
-          click: () => this.windowManager.hideAllWindows(),
+          click: () => this.modeManager.switchToClosedMode(),
         },
         {
           label: "Quit",
           accelerator: KeyboardShortcuts.QUIT_APP,
-          click: () => this.windowManager.hideAllWindows(),
+          click: () => this.modeManager.switchToClosedMode(),
         },
       ],
     };
@@ -89,23 +87,16 @@ export default class MenuManager extends BaseManager {
 
   createWriteWindowMenu() {
     const menu = this.createDefaultMenu();
-    const mainSubmenu = menu[0]
-      .submenu as Electron.MenuItemConstructorOptions[];
-    mainSubmenu.splice(1, 1);
     return menu;
   }
 
   createSearchWindowMenu() {
     const menu = this.createDefaultMenu();
-    const mainSubmenu = menu[0]
-      .submenu as Electron.MenuItemConstructorOptions[];
-    mainSubmenu.splice(2, 2);
     return menu;
   }
 
   createSettingsWindowMenu() {
     const menu = this.createDefaultMenu();
-
     return menu;
   }
 
@@ -113,7 +104,7 @@ export default class MenuManager extends BaseManager {
     const menu = this.createDefaultMenu();
     const mainSubmenu = menu[0]
       .submenu as Electron.MenuItemConstructorOptions[];
-    mainSubmenu.splice(0, 5);
+    mainSubmenu.splice(0, 3);
     return menu;
   }
 }

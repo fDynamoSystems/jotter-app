@@ -2,6 +2,9 @@ import { Menu, MenuItem, Tray, app, nativeImage } from "electron";
 import { join } from "path";
 import BaseManager from "../BaseManager";
 
+/*
+TRAY MANAGER deals with the application tray and its menu
+*/
 export default class TrayManager extends BaseManager {
   private quitApp: () => void;
 
@@ -21,30 +24,16 @@ export default class TrayManager extends BaseManager {
     const menu = new Menu();
     menu.append(
       new MenuItem({
-        label: "Show",
-        click: () => this.windowManager.showAllWindows(),
-      })
-    );
-    menu.append(
-      new MenuItem({
-        label: "Hide",
-        click: () => this.windowManager.hideAllWindows(),
-      })
-    );
-    menu.append(new MenuItem({ type: "separator" }));
-    menu.append(
-      new MenuItem({
         label: "New note",
         click: () => {
-          this.windowManager.showAllWindows();
-          this.windowManager.handleNewNote();
+          this.modeManager.switchToWriteMode();
         },
       })
     );
     menu.append(
       new MenuItem({
         label: "Search notes",
-        click: () => this.windowManager.handleEditEntry(),
+        click: () => this.modeManager.switchToEditMode(),
       })
     );
     menu.append(new MenuItem({ type: "separator" }));
@@ -52,10 +41,7 @@ export default class TrayManager extends BaseManager {
       new MenuItem({
         label: "Open settings",
         click: () => {
-          if (!this.windowManager.getIsAppShown()) {
-            this.windowManager.showAllWindows();
-          }
-          this.windowManager.openSettingsWindow();
+          console.warn("TO IMPLEMENT!");
         },
       })
     );
@@ -78,15 +64,10 @@ export default class TrayManager extends BaseManager {
     const tray = new Tray(icon);
 
     tray.on("click", () => {
-      if (this.windowManager.getIsAppShown()) {
-        this.windowManager.hideAllWindows();
-      } else {
-        this.windowManager.showAllWindows();
-      }
+      tray.popUpContextMenu(menu);
     });
 
     tray.on("right-click", () => {
-      this.windowManager.hideAllWindows();
       tray.popUpContextMenu(menu);
     });
 

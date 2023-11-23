@@ -9,6 +9,7 @@ import WindowManager from "./managers/WindowManager";
 import TrayManager from "./managers/TrayManager";
 import AutoLaunch from "auto-launch";
 import MenuManager from "./managers/MenuManager";
+import ModeManager from "./managers/ModeManager";
 
 const autoLauncher = new AutoLaunch({
   name: "Jotter",
@@ -41,14 +42,16 @@ const filerService: FilerService = new FilerService();
 const windowManager: WindowManager = new WindowManager();
 const trayManager: TrayManager = new TrayManager(quitApp);
 const menuManager: MenuManager = new MenuManager();
-const managers: [WindowManager, TrayManager, MenuManager] = [
+const modeManager: ModeManager = new ModeManager();
+const managerList: [WindowManager, TrayManager, MenuManager, ModeManager] = [
   windowManager,
   trayManager,
   menuManager,
+  modeManager,
 ];
 
-managers.forEach((manager) => {
-  manager.injectManagers(...managers);
+managerList.forEach((manager) => {
+  manager.injectManagers(managerList);
 });
 
 /* App states */
@@ -74,7 +77,6 @@ app.on("window-all-closed", () => {
 app.on("before-quit", (event) => {
   if (!enableQuit) {
     event.preventDefault();
-    windowManager.hideAllWindows();
   }
 });
 
@@ -91,12 +93,9 @@ async function initializeNotes(notesFolderPath: string) {
   searcherService.setSearcherDocs(searcherDocs);
   filerService.setNotesFolderPath(notesFolderPath);
 
-  // Initialize windows
-  await windowManager.initializeMainWindows();
-
   const SHOW_DELAY = 50;
   setTimeout(() => {
-    windowManager.showAllWindows();
+    modeManager.switchToClosedMode();
   }, SHOW_DELAY);
 }
 
@@ -114,7 +113,7 @@ async function registerGlobalKeyboardShortcuts() {
   }
 
   globalShortcut.register(writeEntryShortcut, async () => {
-    windowManager.handleWriteEntry();
+    modeManager.switchToWriteMode();
   });
 
   // Register edit entry shortcut
@@ -130,7 +129,7 @@ async function registerGlobalKeyboardShortcuts() {
   }
 
   globalShortcut.register(editEntryShortcut, async () => {
-    windowManager.handleEditEntry();
+    modeManager.switchToEditMode();
   });
 }
 
@@ -141,7 +140,7 @@ app.whenReady().then(async () => {
   app.setName("Jotter");
 
   // Set up IPC Handlers
-  new IpcHandlers(searcherService, filerService, windowManager);
+  new IpcHandlers(searcherService, filerService, managerList);
 
   // Build tray
   await trayManager.initialize();
