@@ -1,5 +1,5 @@
-import { IPC_MESSAGE, KeyboardShortcuts } from "@src/common/constants";
-import { BrowserWindow, app, Menu, shell } from "electron";
+import { IPC_MESSAGE } from "@src/common/constants";
+import { BrowserWindow, app } from "electron";
 import { createSearchWindow } from "../../windows/createSearchWindow";
 import {
   createWriteWindow,
@@ -9,7 +9,8 @@ import { KeyboardModifiersState } from "@src/common/types";
 import { NoteEditInfo } from "@renderer/common/types";
 import { createSettingsWindow } from "../../windows/createSettingsWindow";
 import { createIntroWindow } from "../../windows/createIntroWindow";
-import defaultMenu from "electron-default-menu";
+import BaseManager from "../BaseManager";
+import { MenuName } from "../MenuManager/MenuManager";
 
 /*
 WindowManager handles most window operations. All windows are created through the main window manager object.
@@ -18,7 +19,7 @@ NOTES:
 - wcId stands for webContents id
 */
 
-export default class WindowManager {
+export default class WindowManager extends BaseManager {
   private searchWindow: BrowserWindow | null = null;
   private wcToSearcherIndexMap: { [wcId: number]: number | null } = [];
   private wcToBrowserWindowMap: { [wcId: number]: BrowserWindow } = [];
@@ -42,7 +43,7 @@ export default class WindowManager {
     const firstWriteWindow = await createWriteWindow(this._onWriteWindowCreate);
     this.writeWindowFocusHistory.push(firstWriteWindow.webContents.id);
     this.isAppInitialized = true;
-    this.useMenu("default");
+    this.menuManager.useMenu(MenuName.default);
   }
 
   /*
@@ -313,7 +314,7 @@ export default class WindowManager {
 
   _onSettingsWindowCreate = (createdWindow: BrowserWindow) => {
     createdWindow.on("focus", () => {
-      this.useMenu("settings");
+      this.menuManager.useMenu(MenuName.settings);
     });
 
     createdWindow.on("blur", () => {
@@ -334,7 +335,7 @@ export default class WindowManager {
         IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
         true
       );
-      this.useMenu("intro");
+      this.menuManager.useMenu(MenuName.intro);
     });
 
     createdWindow.on("blur", () => {
@@ -357,7 +358,7 @@ export default class WindowManager {
         IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
         true
       );
-      this.useMenu("search");
+      this.menuManager.useMenu(MenuName.search);
     });
 
     createdWindow.on("blur", () => {
@@ -387,7 +388,7 @@ export default class WindowManager {
 
       if (shouldUpdateFocusHistory) this.writeWindowFocusHistory.push(wcId);
 
-      this.useMenu("write");
+      this.menuManager.useMenu(MenuName.write);
     });
 
     createdWindow.on("blur", () => {
@@ -453,7 +454,7 @@ export default class WindowManager {
   SECTION: Entry functions
   */
 
-  handleMainEntry() {
+  handleWriteEntry() {
     if (!this.isAppShown) {
       this.showAllWindows();
       this.focusLastFocusedWriteWindow();
@@ -462,116 +463,10 @@ export default class WindowManager {
     }
   }
 
-  handleSearchEntry() {
+  handleEditEntry() {
     if (!this.isAppShown) {
       this.showAllWindows();
     }
     this.focusSearchWindow();
-  }
-
-  /*
-  SECTION: Utility functions
-  */
-
-  /*
-  SECTION: Menus
-  */
-  useMenu(windowName: "write" | "search" | "settings" | "intro" | "default") {
-    let menu: Electron.MenuItemConstructorOptions[] = null!;
-    switch (windowName) {
-      case "write":
-        menu = this.createWriteWindowMenu();
-        break;
-      case "search":
-        menu = this.createSearchWindowMenu();
-        break;
-      case "settings":
-        menu = this.createSettingsWindowMenu();
-        break;
-      case "intro":
-        menu = this.createIntroWindowMenu();
-        break;
-      case "default":
-        menu = this.createDefaultMenu();
-        break;
-      default:
-        menu = this.createDefaultMenu();
-        break;
-    }
-    Menu.setApplicationMenu(Menu.buildFromTemplate(menu));
-  }
-
-  createDefaultMenu() {
-    const menu = defaultMenu(app, shell);
-    menu[0] = {
-      label: "first",
-      submenu: [
-        {
-          label: "New note",
-          accelerator: KeyboardShortcuts.NEW_NOTE,
-          click: () => this.handleNewNote(),
-        },
-        {
-          label: "Write note",
-          accelerator: KeyboardShortcuts.WRITE_NOTE,
-          click: () => this.focusLastFocusedWriteWindow(),
-        },
-        { type: "separator" },
-        {
-          label: "Search notes",
-          accelerator: KeyboardShortcuts.SEARCH_NOTES,
-          click: () => this.focusSearchWindow(),
-        },
-        { type: "separator" },
-        {
-          label: "Close",
-          accelerator: KeyboardShortcuts.CLOSE_APP,
-          click: () => this.hideAllWindows(),
-        },
-        {
-          label: "Quit",
-          accelerator: KeyboardShortcuts.QUIT_APP,
-          click: () => this.hideAllWindows(),
-        },
-      ],
-    };
-
-    // Remove unwanted items
-    menu.splice(
-      menu.findIndex((e) => e.label === "Help"),
-      1
-    );
-
-    return menu;
-  }
-
-  createWriteWindowMenu() {
-    const menu = this.createDefaultMenu();
-    const mainSubmenu = menu[0]
-      .submenu as Electron.MenuItemConstructorOptions[];
-    mainSubmenu.splice(1, 1);
-    return menu;
-  }
-
-  createSearchWindowMenu() {
-    const menu = this.createDefaultMenu();
-    const mainSubmenu = menu[0]
-      .submenu as Electron.MenuItemConstructorOptions[];
-    mainSubmenu.splice(2, 2);
-    return menu;
-  }
-
-  createSettingsWindowMenu() {
-    const menu = this.createDefaultMenu();
-
-    return menu;
-  }
-
-  createIntroWindowMenu() {
-    const menu = this.createDefaultMenu();
-    const mainSubmenu = menu[0]
-      .submenu as Electron.MenuItemConstructorOptions[];
-    mainSubmenu.splice(0, 5);
-    return menu;
   }
 }

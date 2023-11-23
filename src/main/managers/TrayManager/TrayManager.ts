@@ -1,13 +1,12 @@
-import WindowManager from "@main/managers/WindowManager";
 import { Menu, MenuItem, Tray, app, nativeImage } from "electron";
 import { join } from "path";
+import BaseManager from "../BaseManager";
 
-export default class TrayManager {
-  private windowManager: WindowManager;
+export default class TrayManager extends BaseManager {
   private quitApp: () => void;
 
-  constructor(windowManager: WindowManager, quitApp: () => void) {
-    this.windowManager = windowManager;
+  constructor(quitApp: () => void) {
+    super();
     this.quitApp = quitApp;
   }
 
@@ -45,7 +44,7 @@ export default class TrayManager {
     menu.append(
       new MenuItem({
         label: "Search notes",
-        click: () => this.windowManager.handleSearchEntry(),
+        click: () => this.windowManager.handleEditEntry(),
       })
     );
     menu.append(new MenuItem({ type: "separator" }));

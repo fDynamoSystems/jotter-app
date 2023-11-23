@@ -8,6 +8,7 @@ import { APP_SETTINGS, KeyboardShortcuts } from "@src/common/constants";
 import WindowManager from "./managers/WindowManager";
 import TrayManager from "./managers/TrayManager";
 import AutoLaunch from "auto-launch";
+import MenuManager from "./managers/MenuManager";
 
 const autoLauncher = new AutoLaunch({
   name: "Jotter",
@@ -32,15 +33,25 @@ settings.configure({
   numSpaces: 2,
 });
 
-/* Constants */
-const SHOW_DELAY = 50;
-
-/* Window states */
+/* Initialize services */
 const searcherService: SearcherService = new SearcherService();
 const filerService: FilerService = new FilerService();
-const windowManager: WindowManager = new WindowManager();
-const trayManager: TrayManager = new TrayManager(windowManager, quitApp);
 
+/* Initialize managers */
+const windowManager: WindowManager = new WindowManager();
+const trayManager: TrayManager = new TrayManager(quitApp);
+const menuManager: MenuManager = new MenuManager();
+const managers: [WindowManager, TrayManager, MenuManager] = [
+  windowManager,
+  trayManager,
+  menuManager,
+];
+
+managers.forEach((manager) => {
+  manager.injectManagers(...managers);
+});
+
+/* App states */
 let enableQuit = false;
 
 function quitApp() {
@@ -83,6 +94,7 @@ async function initializeNotes(notesFolderPath: string) {
   // Initialize windows
   await windowManager.initializeMainWindows();
 
+  const SHOW_DELAY = 50;
   setTimeout(() => {
     windowManager.showAllWindows();
   }, SHOW_DELAY);
