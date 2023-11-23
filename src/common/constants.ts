@@ -15,8 +15,8 @@ export const IPC_MESSAGE = {
     SET_NOTES_FOLDER_PATH: "set-notes-folder-path",
     GET_NOTES_FOLDER_PATH: "get-notes-folder-path",
     OPEN_DIALOG_NOTES_FOLDER_PATH: "open-settings-dialog",
-    SET_MAIN_ENTRY_SHORTCUT: "set-main-entry-shortcut",
-    GET_MAIN_ENTRY_SHORTCUT: "get-main-entry-shortcut",
+    SET_WRITE_ENTRY_SHORTCUT: "set-write-entry-shortcut",
+    GET_WRITE_ENTRY_SHORTCUT: "get-write-entry-shortcut",
     INITIAL_SET_NOTES_FOLDER_PATH: "initial-set-notes-folder-path",
     CLOSE_INTRO: "close-intro",
     CONFIRM_AND_DELETE_NOTE: "confirm-and-delete-note",
@@ -32,8 +32,8 @@ export const IPC_MESSAGE = {
 } as const;
 
 export enum KeyboardShortcuts {
-  MAIN_ENTRY = "Alt+CommandOrControl+N",
-  SEARCH_ENTRY = "Alt+CommandOrControl+F",
+  WRITE_ENTRY = "Alt+CommandOrControl+N",
+  EDIT_ENTRY = "Alt+CommandOrControl+F",
   CLOSE_APP = "Escape",
   NEW_NOTE = "CommandOrControl+N",
   SEARCH_NOTES = "Shift+CommandOrControl+F",
@@ -46,8 +46,8 @@ export const BG_COLOR_LIGHT = "#FFF";
 
 export const APP_SETTINGS = {
   NOTES_FOLDER_PATH: "notebookFolderPath",
-  MAIN_ENTRY_SHORTCUT: "mainEntryShortcut",
-  SEARCH_ENTRY_SHORTCUT: "searchEntryShortcut",
+  WRITE_ENTRY_SHORTCUT: "writeEntryShortcut",
+  EDIT_ENTRY_SHORTCUT: "editEntryShortcut",
 };
 
 export const MAX_NOTE_TITLE_LENGTH = 200;

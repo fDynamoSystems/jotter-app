@@ -36,8 +36,8 @@ export type SettingsElectronAPI = {
   getNotesFolderPath: () => Promise<string | undefined>;
   setNotesFolderPath: (newPath: string) => void;
   openDialogNotesFolderPath: () => Promise<string | undefined>;
-  getMainEntryShortcut: () => Promise<string | undefined>;
-  setMainEntryShortcut: (newShortcut: string) => void;
+  getWriteEntryShortcut: () => Promise<string | undefined>;
+  setWriteEntryShortcut: (newShortcut: string) => void;
 };
 
 export type IntroElectronAPI = {

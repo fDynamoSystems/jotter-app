@@ -45,8 +45,8 @@ export default class IpcHandlers {
       this.openDialogNotesFolderPath
     );
     ipcMain.handle(
-      IPC_MESSAGE.FROM_RENDERER.GET_MAIN_ENTRY_SHORTCUT,
-      this.getMainEntryShortcut
+      IPC_MESSAGE.FROM_RENDERER.GET_WRITE_ENTRY_SHORTCUT,
+      this.getWriteEntryShortcut
     );
     ipcMain.handle(
       IPC_MESSAGE.FROM_RENDERER.INITIAL_SET_NOTES_FOLDER_PATH,
@@ -84,8 +84,8 @@ export default class IpcHandlers {
       this.setNotesFolderPath
     );
     ipcMain.on(
-      IPC_MESSAGE.FROM_RENDERER.SET_MAIN_ENTRY_SHORTCUT,
-      this.setMainEntryShortcut
+      IPC_MESSAGE.FROM_RENDERER.SET_WRITE_ENTRY_SHORTCUT,
+      this.setWriteEntryShortcut
     );
     ipcMain.on(IPC_MESSAGE.FROM_RENDERER.CLOSE_INTRO, this.closeIntroWindow);
     ipcMain.on(
@@ -310,25 +310,25 @@ export default class IpcHandlers {
     return dialogRes.filePaths[0];
   };
 
-  private setMainEntryShortcut = async (
+  private setWriteEntryShortcut = async (
     _event: Electron.IpcMainInvokeEvent,
     newShortcut: string
   ) => {
     // Unregister old shortcut
-    const oldShortcut = (await this.getMainEntryShortcut()) as
+    const oldShortcut = (await this.getWriteEntryShortcut()) as
       | string
       | undefined;
     if (oldShortcut) globalShortcut.unregister(oldShortcut);
 
     // Register new shortcut
-    settings.set(APP_SETTINGS.MAIN_ENTRY_SHORTCUT, newShortcut);
+    settings.set(APP_SETTINGS.WRITE_ENTRY_SHORTCUT, newShortcut);
     globalShortcut.register(newShortcut, () =>
-      this.windowManager.handleMainEntry()
+      this.windowManager.handleWriteEntry()
     );
   };
 
-  private getMainEntryShortcut = async () => {
-    return settings.get(APP_SETTINGS.MAIN_ENTRY_SHORTCUT);
+  private getWriteEntryShortcut = async () => {
+    return settings.get(APP_SETTINGS.WRITE_ENTRY_SHORTCUT);
   };
 
   private closeIntroWindow = async () => {
