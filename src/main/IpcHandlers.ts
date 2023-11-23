@@ -10,6 +10,7 @@ import { ManagerList } from "./managers/BaseManager";
 import ModeManager from "./managers/ModeManager";
 import MenuManager from "./managers/MenuManager";
 import TrayManager from "./managers/TrayManager";
+import ElectronKeyboardManager from "./managers/ElectronKeyboardManager";
 
 const { ipcMain } = require("electron");
 
@@ -20,6 +21,7 @@ export default class IpcHandlers {
   private trayManager: TrayManager;
   private menuManager: MenuManager;
   private modeManager: ModeManager;
+  private electronKeyboardManager: ElectronKeyboardManager;
 
   constructor(
     searcher: SearcherService,
@@ -32,6 +34,7 @@ export default class IpcHandlers {
     this.trayManager = managerList[1];
     this.menuManager = managerList[2];
     this.modeManager = managerList[3];
+    this.electronKeyboardManager = managerList[4];
 
     // Two way handlers
     ipcMain.handle(IPC_MESSAGE.FROM_RENDERER.CREATE_NOTE, this.createNote);
@@ -251,7 +254,7 @@ export default class IpcHandlers {
   };
 
   private getKeyboardModifiersState = (_event: Electron.IpcMainInvokeEvent) => {
-    return this.windowManager.getKeyboardModifiersState();
+    return this.electronKeyboardManager.getKeyboardModifiersState();
   };
 
   // Called only by intro window

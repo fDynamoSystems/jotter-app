@@ -31,7 +31,7 @@ const getSearchWindowInitConfig = (): BrowserWindowConstructorOptions => {
     show: false,
     skipTaskbar: false,
     focusable: true,
-    closable: false,
+    closable: true,
     backgroundColor: nativeTheme.shouldUseDarkColors
       ? BG_COLOR_DARK
       : BG_COLOR_LIGHT,

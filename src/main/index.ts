@@ -10,6 +10,8 @@ import TrayManager from "./managers/TrayManager";
 import AutoLaunch from "auto-launch";
 import MenuManager from "./managers/MenuManager";
 import ModeManager from "./managers/ModeManager";
+import ElectronKeyboardManager from "./managers/ElectronKeyboardManager";
+import { ManagerList } from "./managers/BaseManager";
 
 const autoLauncher = new AutoLaunch({
   name: "Jotter",
@@ -43,11 +45,14 @@ const windowManager: WindowManager = new WindowManager();
 const trayManager: TrayManager = new TrayManager(quitApp);
 const menuManager: MenuManager = new MenuManager();
 const modeManager: ModeManager = new ModeManager();
-const managerList: [WindowManager, TrayManager, MenuManager, ModeManager] = [
+const electronKeyboardManager: ElectronKeyboardManager =
+  new ElectronKeyboardManager();
+const managerList: ManagerList = [
   windowManager,
   trayManager,
   menuManager,
   modeManager,
+  electronKeyboardManager,
 ];
 
 managerList.forEach((manager) => {
