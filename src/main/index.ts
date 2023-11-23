@@ -89,7 +89,7 @@ async function initializeNotes(notesFolderPath: string) {
 }
 
 async function registerGlobalKeyboardShortcuts() {
-  // Get settings
+  // Register main entry shortcut
   let mainEntryShortcut = (await settings.get(
     APP_SETTINGS.MAIN_ENTRY_SHORTCUT
   )) as string;
@@ -101,6 +101,7 @@ async function registerGlobalKeyboardShortcuts() {
     mainEntryShortcut = KeyboardShortcuts.MAIN_ENTRY;
   }
 
+  // Register search entry shortcut
   globalShortcut.register(mainEntryShortcut, async () => {
     windowManager.handleMainEntry();
   });

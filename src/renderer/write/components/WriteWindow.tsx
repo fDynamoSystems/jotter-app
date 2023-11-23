@@ -5,11 +5,7 @@ import { COMMAND_PREFIXES, SAVE_CHANGES_DELAY } from "../constants";
 import NoteTakingForm from "@renderer/write/components/NoteTakingForm";
 import WindowTitle from "@renderer/common/components/WindowTitle";
 import { NoteEditInfo } from "@renderer/common/types";
-import type { Editor } from "codemirror";
-import { KeyboardShortcuts } from "@src/common/constants";
-import { getNoteTitleFromContent } from "@src/common/helpers";
 
-const DEFAULT_WINDOW_NAME = "✏️ Jotter";
 export default function WriteWindow() {
   const [writeVal, setWriteVal] = useState<string>("");
   const noteEditInfoRef = useRef<NoteEditInfo | null>(null);
@@ -17,8 +13,6 @@ export default function WriteWindow() {
     noteEditInfoRef.current = newVal;
   }
 
-  const [noteTakingFormInstance, setNoteTakingFormInstance] =
-    useState<Editor | null>(null);
   const saveChangesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -44,23 +38,6 @@ export default function WriteWindow() {
       window.writeElectronAPI.removeResetWriteWindowRequestListener();
     };
   }, [writeVal]);
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleGlobalKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleGlobalKeyDown);
-    };
-  }, [handleGlobalKeyDown, noteTakingFormInstance]);
-
-  function handleGlobalKeyDown(e: KeyboardEvent) {
-    if (e.code.startsWith("Key") || e.code.startsWith("Digit")) {
-      noteTakingFormInstance?.focus();
-      return;
-    }
-    if (e.key === KeyboardShortcuts.CLOSE_APP) {
-      window.commonElectronAPI.closeOverlay();
-    }
-  }
 
   function handleChange(newVal: string) {
     if (newVal.startsWith(COMMAND_PREFIXES.COMMAND_START)) {
@@ -108,14 +85,6 @@ export default function WriteWindow() {
     if (shouldUpdateCurrentNote) setNoteEditInfo(newNoteEditInfo);
   }
 
-  const getWindowTitle = () => {
-    if (writeVal.trim().length) {
-      return getNoteTitleFromContent(writeVal);
-    }
-
-    return DEFAULT_WINDOW_NAME;
-  };
-
   function handleClose() {
     window.commonElectronAPI.closeCurrentWindow();
   }
@@ -123,11 +92,10 @@ export default function WriteWindow() {
   return (
     <div className={styles.bgContainer}>
       <div className={styles.container}>
-        <WindowTitle windowTitle={getWindowTitle()} onClose={handleClose} />
+        <WindowTitle windowTitle={""} onClose={handleClose} />
         <NoteTakingForm
           writeVal={writeVal}
           onChange={handleChange}
-          setNoteTakingInstance={setNoteTakingFormInstance}
           placeholder="New note..."
         />
       </div>

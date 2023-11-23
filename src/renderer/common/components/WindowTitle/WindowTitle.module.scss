@@ -35,12 +35,15 @@ $rightContainerWidth: 100px;
     border: none;
     cursor: pointer;
 
-    .iconClose {
-      fill: var(--color-primary);
+    .iconClose:after {
+      display: inline-block;
+      content: "\00d7"; /* This will render the 'X' */
+      color: var(--color-primary);
+      font-size: 24px;
     }
 
     &:hover .iconClose {
-      fill: var(--color-primary--active);
+      color: var(--color-primary--active);
     }
   }
 }
