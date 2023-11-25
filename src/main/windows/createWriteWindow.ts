@@ -10,6 +10,7 @@ import {
   INITIAL_ON_TOP_RELATIVE_LEVEL,
 } from "./constants";
 import { getActiveScreenBounds } from "./helpers";
+import { WindowCreateSettings } from "./types";
 
 const MIN_WINDOW_WIDTH = 420;
 const MIN_WINDOW_HEIGHT = 280;
@@ -46,14 +47,9 @@ const getWriteWindowInitConfig = (): BrowserWindowConstructorOptions => {
   };
 };
 
-export type WriteWindowCreateSettings = {
-  position?: number[];
-  size?: number[];
-};
-
 export async function createWriteWindow(
   cb?: (createdWindow: BrowserWindow) => void,
-  createSettings?: WriteWindowCreateSettings
+  createSettings?: WindowCreateSettings
 ) {
   const prodOptions = getWriteWindowInitConfig();
   const devOptions: BrowserWindowConstructorOptions = {
@@ -75,13 +71,13 @@ export async function createWriteWindow(
       height?: number;
     } = {};
     if (createSettings.position) {
-      (convertedSettings.x = createSettings.position[0]),
-        (convertedSettings.y = createSettings.position[1]);
+      (convertedSettings.x = createSettings.position.x),
+        (convertedSettings.y = createSettings.position.y);
     }
 
     if (createSettings.size) {
-      (convertedSettings.width = createSettings.size[0]),
-        (convertedSettings.height = createSettings.size[1]);
+      (convertedSettings.width = createSettings.size.width),
+        (convertedSettings.height = createSettings.size.height);
     }
 
     constructorOptions = { ...constructorOptions, ...convertedSettings };
