@@ -11,6 +11,7 @@ import ModeManager from "./managers/ModeManager";
 import MenuManager from "./managers/MenuManager";
 import TrayManager from "./managers/TrayManager";
 import ElectronKeyboardManager from "./managers/ElectronKeyboardManager";
+import MemoryManager from "./managers/MemoryManager";
 
 const { ipcMain } = require("electron");
 
@@ -22,6 +23,7 @@ export default class IpcHandlers {
   private menuManager: MenuManager;
   private modeManager: ModeManager;
   private electronKeyboardManager: ElectronKeyboardManager;
+  private memoryManager: MemoryManager;
 
   constructor(
     searcher: SearcherService,
@@ -35,6 +37,7 @@ export default class IpcHandlers {
     this.menuManager = managerList[2];
     this.modeManager = managerList[3];
     this.electronKeyboardManager = managerList[4];
+    this.memoryManager = managerList[5];
 
     // Two way handlers
     ipcMain.handle(IPC_MESSAGE.FROM_RENDERER.CREATE_NOTE, this.createNote);
@@ -175,7 +178,7 @@ export default class IpcHandlers {
     this.filerService.deleteNote(noteEditInfo.filepath);
     this.searcherService.deleteNote(noteEditInfo.searcherIndex);
     const wcId = mainEvent.sender.id;
-    this.windowManager.revertWriteWindowSearcherIndex(wcId);
+    this.windowManager.revertWriteWindowSearcherIndexUsingWcId(wcId);
 
     return null;
   };
@@ -213,7 +216,7 @@ export default class IpcHandlers {
     noteEditInfo: NoteEditInfo
   ) => {
     // Check if a write window is already open
-    const currWindow = this.windowManager.getBrowserViewFromSearcherIndex(
+    const currWindow = this.windowManager.getBrowserWindowFromSearcherIndex(
       noteEditInfo.searcherIndex
     );
     if (currWindow) {
@@ -242,7 +245,7 @@ export default class IpcHandlers {
     noteEditInfo: NoteEditInfo
   ) => {
     // Check if a write window is already open
-    const currWindow = this.windowManager.getBrowserViewFromSearcherIndex(
+    const currWindow = this.windowManager.getBrowserWindowFromSearcherIndex(
       noteEditInfo.searcherIndex
     );
     if (currWindow) {
@@ -250,7 +253,7 @@ export default class IpcHandlers {
       return;
     }
 
-    (await this.windowManager.openWriteWindowForNote(noteEditInfo))?.focus();
+    await this.windowManager.openWriteWindowForNote({ noteEditInfo });
   };
 
   private getKeyboardModifiersState = (_event: Electron.IpcMainInvokeEvent) => {

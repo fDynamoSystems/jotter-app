@@ -46,8 +46,14 @@ const getWriteWindowInitConfig = (): BrowserWindowConstructorOptions => {
   };
 };
 
+export type WriteWindowCreateSettings = {
+  position?: number[];
+  size?: number[];
+};
+
 export async function createWriteWindow(
-  cb?: (createdWindow: BrowserWindow) => void
+  cb?: (createdWindow: BrowserWindow) => void,
+  createSettings?: WriteWindowCreateSettings
 ) {
   const prodOptions = getWriteWindowInitConfig();
   const devOptions: BrowserWindowConstructorOptions = {
@@ -58,8 +64,28 @@ export async function createWriteWindow(
     },
   };
 
-  const constructorOptions =
+  let constructorOptions =
     process.env.NODE_ENV !== "production" ? devOptions : prodOptions;
+
+  if (createSettings) {
+    const convertedSettings: {
+      x?: number;
+      y?: number;
+      width?: number;
+      height?: number;
+    } = {};
+    if (createSettings.position) {
+      (convertedSettings.x = createSettings.position[0]),
+        (convertedSettings.y = createSettings.position[1]);
+    }
+
+    if (createSettings.size) {
+      (convertedSettings.width = createSettings.size[0]),
+        (convertedSettings.height = createSettings.size[1]);
+    }
+
+    constructorOptions = { ...constructorOptions, ...convertedSettings };
+  }
 
   // Create the write window
   const writeWindow = new BrowserWindow(constructorOptions);
