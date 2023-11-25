@@ -29,6 +29,7 @@ export type SearchElectronAPI = {
   openWriteWindowForNote: (noteEditInfo: NoteEditInfo) => void;
   confirmAndDeleteNote: (noteEditInfo: NoteEditInfo) => Promise<boolean>; // Returns true if note is deleted
   openContextMenuForResultItem: (noteEditInfo: NoteEditInfo) => void;
+  onSetQuery: (cb: (_event: any, query: string) => void) => void;
 };
 
 export type SettingsElectronAPI = {

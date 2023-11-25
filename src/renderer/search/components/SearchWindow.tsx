@@ -34,6 +34,10 @@ export default function SearchWindow() {
       queryAndSetResults();
     });
 
+    window.searchElectronAPI.onSetQuery((_event, query) => {
+      setQueryVal(query);
+    });
+
     // Added to remove visual bug of search input being focused on launch
     setTimeout(() => {
       searchInputRef.current?.blur();

@@ -28,6 +28,7 @@ export const IPC_MESSAGE = {
     RETRIGGER_SEARCH: "retrigger-search",
     SEND_NOTE_FOR_EDIT: "send-note-for-edit",
     RESET_WRITE_WINDOW: "reset-write-window",
+    SET_SEARCH_QUERY: "set-search-query",
   },
 } as const;
 
