@@ -506,6 +506,10 @@ export default class WindowManager extends BaseManager {
     windows.forEach((window) => window.setClosable(true));
   }
 
+  getWriteWindowFocusHistory() {
+    return this.writeWindowFocusHistory;
+  }
+
   getAllMaps() {
     return {
       wcToSearcherIndexMap: this.wcToSearcherIndexMap,

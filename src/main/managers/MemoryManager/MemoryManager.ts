@@ -1,6 +1,6 @@
 import SearcherService from "@main/services/SearcherService";
 import BaseManager from "../BaseManager";
-import { WindowType, WindowVisualDetails } from "../WindowManager/types";
+import { WindowVisualDetails } from "../WindowManager/types";
 import { NoteEditInfo } from "@src/common/types";
 
 /*
@@ -56,14 +56,9 @@ export default class MemoryManager extends BaseManager {
   saveWriteModeToMemory(): WriteModeMemoryInternal | null {
     const currentMaps = this.windowManager.getAllMaps();
 
-    // Get wcId
-    let wcId: number | null = null;
-    Object.entries(currentMaps.wcToWindowTypeMap).forEach((entry) => {
-      const [wc, windowType] = entry;
-      if (windowType === WindowType.UniqueWrite) {
-        wcId = parseInt(wc);
-      }
-    });
+    // Get wcId of unique window
+    const wcId: number | null =
+      this.windowManager.getUniqueWriteWindow()?.webContents.id || null;
 
     if (wcId === null) {
       // TODO: Better error handling
@@ -119,28 +114,25 @@ export default class MemoryManager extends BaseManager {
   saveEditModeToMemory(): EditModeMemoryInternal | null {
     const currentMaps = this.windowManager.getAllMaps();
 
-    const {
-      wcToWindowTypeMap,
-      wcToWindowPositionMap,
-      wcToWindowSizeMap,
-      wcToSearcherIndexMap,
-    } = currentMaps;
+    const { wcToWindowPositionMap, wcToWindowSizeMap, wcToSearcherIndexMap } =
+      currentMaps;
 
-    let searchWindowVisualDetails: WindowVisualDetails | null = null;
-    const writeWindowDetailsList: WriteWindowDetailsInternal[] = [];
+    const searchWcId: number | null =
+      this.windowManager.getSearchWindow()?.webContents.id || null;
 
-    Object.entries(wcToWindowTypeMap).forEach((entry) => {
-      const wcId = parseInt(entry[0]);
-      const windowType = entry[1];
+    if (!searchWcId) return null; // TODO: Better error handling
+    const [x, y] = wcToWindowPositionMap[searchWcId];
+    const [width, height] = wcToWindowSizeMap[searchWcId];
+    const searchWindowVisualDetails = {
+      position: { x, y },
+      size: { width, height },
+    };
 
-      if (windowType === WindowType.Search) {
-        const [x, y] = wcToWindowPositionMap[wcId];
-        const [width, height] = wcToWindowSizeMap[wcId];
-        searchWindowVisualDetails = {
-          position: { x, y },
-          size: { width, height },
-        };
-      } else if (windowType === WindowType.Write) {
+    const writeWindowFocusHistory =
+      this.windowManager.getWriteWindowFocusHistory();
+
+    const writeWindowDetailsList: WriteWindowDetailsInternal[] =
+      writeWindowFocusHistory.map((wcId) => {
         const searcherIndex: number | null = wcToSearcherIndexMap[wcId];
         const [x, y] = wcToWindowPositionMap[wcId];
         const [width, height] = wcToWindowSizeMap[wcId];
@@ -152,11 +144,8 @@ export default class MemoryManager extends BaseManager {
           },
         };
 
-        writeWindowDetailsList.push(toAdd);
-      }
-    });
-
-    if (!searchWindowVisualDetails) return null; // TODO: Better error handling
+        return toAdd;
+      });
 
     this.editModeMemory = {
       searchWindowVisualDetails,
