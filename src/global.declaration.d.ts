@@ -1,5 +1,4 @@
-import { NoteEditInfo } from "@renderer/common/types";
-import { KeyboardModifiersState } from "./common/types";
+import { KeyboardModifiersState, NoteEditInfo } from "./common/types";
 import { QueryResultItem } from "@main/services/SearcherService";
 
 export type CommonElectronAPI = {

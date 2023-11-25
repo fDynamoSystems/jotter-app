@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import styles from "./ResultsList.module.scss";
 import { ResultDisplay, ResultChunk } from "@renderer/search/types";
-import { NoteEditInfo } from "@renderer/common/types";
+import { NoteEditInfo } from "@src/common/types";
 
 /*
 Result list is the entire list

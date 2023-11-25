@@ -5,7 +5,7 @@ import ResultsList from "./ResultsList";
 import WindowTitle from "@renderer/common/components/WindowTitle";
 import { ResultDisplay } from "../types";
 import { processQueryResults } from "../helpers";
-import { NoteEditInfo } from "@renderer/common/types";
+import { NoteEditInfo } from "@src/common/types";
 import { QueryResultItem } from "@main/services/SearcherService";
 
 const INITIAL_SELECT_INDEX = -1;

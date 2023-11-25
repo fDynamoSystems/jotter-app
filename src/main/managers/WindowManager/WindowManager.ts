@@ -1,8 +1,7 @@
 import { IPC_MESSAGE } from "@src/common/constants";
 import { BrowserWindow, app } from "electron";
 import { createSearchWindow } from "../../windows/createSearchWindow";
-import { createWriteWindow } from "../../windows/createWriteWindow";
-import { NoteEditInfo } from "@renderer/common/types";
+import { NoteEditInfo } from "@src/common/types";
 import { createSettingsWindow } from "../../windows/createSettingsWindow";
 import { createIntroWindow } from "../../windows/createIntroWindow";
 import BaseManager from "../BaseManager";

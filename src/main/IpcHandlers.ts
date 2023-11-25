@@ -2,7 +2,7 @@ import SearcherService from "./services/SearcherService";
 import FilerService from "./services/FilerService";
 import { APP_SETTINGS, IPC_MESSAGE } from "@src/common/constants";
 import { BrowserWindow, Menu, app, dialog, globalShortcut } from "electron";
-import { NoteEditInfo } from "@renderer/common/types";
+import { NoteEditInfo } from "@src/common/types";
 import settings from "electron-settings";
 import { ScanAllFilesResult, scanAllNoteFiles } from "./scanAllNoteFiles";
 import WindowManager from "./managers/WindowManager";

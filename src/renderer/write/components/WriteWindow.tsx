@@ -3,7 +3,7 @@ import styles from "./WriteWindow.module.scss";
 import "@renderer/common/styles/global.scss";
 import { COMMAND_PREFIXES, SAVE_CHANGES_DELAY } from "../constants";
 import WindowTitle from "@renderer/common/components/WindowTitle";
-import { NoteEditInfo } from "@renderer/common/types";
+import { NoteEditInfo } from "@src/common/types";
 
 export default function WriteWindow() {
   const [writeVal, setWriteVal] = useState<string>("");
