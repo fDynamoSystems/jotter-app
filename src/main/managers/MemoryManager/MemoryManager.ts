@@ -1,6 +1,6 @@
 import SearcherService from "@main/services/SearcherService";
 import BaseManager from "../BaseManager";
-import { WindowVisualDetails } from "../WindowManager/types";
+import { WindowType, WindowVisualDetails } from "../WindowManager/types";
 import { NoteEditInfo } from "@src/common/types";
 
 /*
@@ -19,24 +19,27 @@ type WriteModeMemoryExternal = Omit<
 };
 
 // Edit Mode types
-type WriteWindowDetailsInternal = {
+type WindowDetailsInternal = {
+  windowType: WindowType;
+  windowVisualDetails: WindowVisualDetails;
   searcherIndex: number | null;
+};
+type WindowDetailsExternal = {
+  windowType: WindowType;
   windowVisualDetails: WindowVisualDetails;
-};
-type EditModeMemoryInternal = {
-  writeWindowDetailsList: WriteWindowDetailsInternal[];
-  searchWindowVisualDetails: WindowVisualDetails;
-};
-type WriteWindowDetailsExternal = {
   noteEditInfo: NoteEditInfo | null;
-  windowVisualDetails: WindowVisualDetails;
 };
+
+type EditModeMemoryInternal = {
+  windowDetailsList: WindowDetailsInternal[];
+};
+
 type EditModeMemoryExternal = Omit<
   EditModeMemoryInternal,
-  "writeWindowDetailsList"
+  "windowDetailsList"
 > & {
   searchQuery: string;
-  writeWindowDetailsList: WriteWindowDetailsExternal[];
+  windowDetailsList: WindowDetailsExternal[];
 };
 
 export default class MemoryManager extends BaseManager {
@@ -114,29 +117,23 @@ export default class MemoryManager extends BaseManager {
   saveEditModeToMemory(): EditModeMemoryInternal | null {
     const currentMaps = this.windowManager.getAllMaps();
 
-    const { wcToWindowPositionMap, wcToWindowSizeMap, wcToSearcherIndexMap } =
-      currentMaps;
+    const {
+      wcToWindowPositionMap,
+      wcToWindowSizeMap,
+      wcToSearcherIndexMap,
+      wcToWindowTypeMap,
+    } = currentMaps;
 
-    const searchWcId: number | null =
-      this.windowManager.getSearchWindow()?.webContents.id || null;
+    const focusHistory = this.windowManager.getCleanFocusHistory();
 
-    if (!searchWcId) return null; // TODO: Better error handling
-    const [x, y] = wcToWindowPositionMap[searchWcId];
-    const [width, height] = wcToWindowSizeMap[searchWcId];
-    const searchWindowVisualDetails = {
-      position: { x, y },
-      size: { width, height },
-    };
-
-    const writeWindowFocusHistory =
-      this.windowManager.getWriteWindowFocusHistory();
-
-    const writeWindowDetailsList: WriteWindowDetailsInternal[] =
-      writeWindowFocusHistory.map((wcId) => {
-        const searcherIndex: number | null = wcToSearcherIndexMap[wcId];
+    const windowDetailsList: WindowDetailsInternal[] = focusHistory.map(
+      (wcId) => {
+        const windowType = wcToWindowTypeMap[wcId];
+        const searcherIndex: number | null = wcToSearcherIndexMap[wcId] || null;
         const [x, y] = wcToWindowPositionMap[wcId];
         const [width, height] = wcToWindowSizeMap[wcId];
-        const toAdd: WriteWindowDetailsInternal = {
+        const toAdd: WindowDetailsInternal = {
+          windowType,
           searcherIndex,
           windowVisualDetails: {
             position: { x, y },
@@ -145,43 +142,40 @@ export default class MemoryManager extends BaseManager {
         };
 
         return toAdd;
-      });
+      }
+    );
 
     this.editModeMemory = {
-      searchWindowVisualDetails,
-      writeWindowDetailsList,
+      windowDetailsList,
     };
     return this.editModeMemory;
   }
 
   loadEditModeFromMemory(): EditModeMemoryExternal | null {
     if (this.editModeMemory) {
-      const writeWindowDetailsList: WriteWindowDetailsExternal[] = [];
+      const windowDetailsList: WindowDetailsExternal[] =
+        this.editModeMemory.windowDetailsList.map((internalDetails) => {
+          let noteEditInfo: NoteEditInfo | null = null;
+          if (internalDetails.searcherIndex) {
+            const rawNote = this.searcherService.getNote(
+              internalDetails.searcherIndex
+            );
+            if (rawNote)
+              noteEditInfo =
+                SearcherService.convertSearcherDocToNoteEditInfo(rawNote);
+          }
 
-      // Convert searcher indices to note edit infos
-      this.editModeMemory.writeWindowDetailsList.forEach((internalDetails) => {
-        let noteEditInfo: NoteEditInfo | null = null;
-        if (internalDetails.searcherIndex) {
-          const rawNote = this.searcherService.getNote(
-            internalDetails.searcherIndex
-          );
-          if (rawNote)
-            noteEditInfo =
-              SearcherService.convertSearcherDocToNoteEditInfo(rawNote);
-        }
-
-        const toAdd: WriteWindowDetailsExternal = {
-          windowVisualDetails: internalDetails.windowVisualDetails,
-          noteEditInfo,
-        };
-        writeWindowDetailsList.push(toAdd);
-      });
+          const toAdd: WindowDetailsExternal = {
+            windowType: internalDetails.windowType,
+            windowVisualDetails: internalDetails.windowVisualDetails,
+            noteEditInfo,
+          };
+          return toAdd;
+        });
 
       return {
         searchQuery: this.searchQuery,
-        searchWindowVisualDetails:
-          this.editModeMemory.searchWindowVisualDetails,
-        writeWindowDetailsList,
+        windowDetailsList,
       };
     }
     return null;

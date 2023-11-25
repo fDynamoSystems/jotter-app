@@ -35,7 +35,7 @@ export default class WindowManager extends BaseManager {
   private uniqueWriteWindow: number | null = null;
 
   // other states
-  private writeWindowFocusHistory: number[] = []; // Items in array are wcIds
+  private focusHistory: number[] = []; // Items in array are wcIds
 
   /*
   SECTION: Open new windows
@@ -88,6 +88,9 @@ export default class WindowManager extends BaseManager {
   /*
   SECTION: On window create functions
   */
+  /**
+   * SUB-SECTION: Common window functions on create
+   */
   _onCommonWindowCreate = (
     createdWindow: BrowserWindow,
     windowType: WindowType
@@ -121,23 +124,51 @@ export default class WindowManager extends BaseManager {
     this.deregisterWindow(createdWindow);
   };
 
+  _onCommonWindowFocus = (createdWindow: BrowserWindow) => {
+    const wcId = createdWindow.webContents.id;
+
+    createdWindow.webContents.send(IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED, true);
+
+    // Add to focus history
+    const shouldUpdateFocusHistory =
+      !this.focusHistory.length ||
+      (this.focusHistory.length &&
+        this.focusHistory[this.focusHistory.length - 1] !== wcId);
+
+    if (shouldUpdateFocusHistory) this.focusHistory.push(wcId);
+  };
+
+  _onCommonWindowBlur = (createdWindow: BrowserWindow) => {
+    createdWindow.webContents.send(IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED, false);
+  };
+
+  _onWriteWindowCreateWithNoteEditInfo(
+    createdWindow: BrowserWindow,
+    noteEditInfo: NoteEditInfo
+  ) {
+    const wcId = createdWindow.webContents.id;
+    createdWindow.webContents.send(
+      IPC_MESSAGE.FROM_MAIN.SEND_NOTE_FOR_EDIT,
+      noteEditInfo
+    );
+
+    this.assignWriteWindowSearcherIndex(wcId, noteEditInfo.searcherIndex);
+  }
+
+  /**
+   * SUB-SECTION: Specific window create functions
+   */
   _onIntroWindowCreate = (createdWindow: BrowserWindow) => {
     const wcId = createdWindow.webContents.id;
     this.introWindow = wcId;
 
     createdWindow.on("focus", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        true
-      );
       this.menuManager.useMenu(MenuName.intro);
+      this._onCommonWindowFocus(createdWindow);
     });
 
     createdWindow.on("blur", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        false
-      );
+      this._onCommonWindowBlur(createdWindow);
     });
 
     createdWindow.on("close", () => {
@@ -154,11 +185,11 @@ export default class WindowManager extends BaseManager {
 
     createdWindow.on("focus", () => {
       this.menuManager.useMenu(MenuName.settings);
+      this._onCommonWindowFocus(createdWindow);
     });
 
     createdWindow.on("blur", () => {
       createdWindow.close();
-      createdWindow.destroy();
     });
 
     createdWindow.on("close", () => {
@@ -174,18 +205,12 @@ export default class WindowManager extends BaseManager {
     this.searchWindow = wcId;
 
     createdWindow.on("focus", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        true
-      );
       this.menuManager.useMenu(MenuName.search);
+      this._onCommonWindowFocus(createdWindow);
     });
 
     createdWindow.on("blur", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        false
-      );
+      this._onCommonWindowBlur(createdWindow);
     });
 
     createdWindow.on("close", () => {
@@ -212,19 +237,12 @@ export default class WindowManager extends BaseManager {
     this.uniqueWriteWindow = wcId;
 
     createdWindow.on("focus", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        true
-      );
-
       this.menuManager.useMenu(MenuName.write);
+      this._onCommonWindowFocus(createdWindow);
     });
 
     createdWindow.on("blur", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        false
-      );
+      this._onCommonWindowBlur(createdWindow);
     });
 
     createdWindow.on("close", () => {
@@ -245,40 +263,16 @@ export default class WindowManager extends BaseManager {
     noteEditInfo: NoteEditInfo | null,
     prevWindow: BrowserWindow | null
   ) => {
-    const wcId = createdWindow.webContents.id;
-
     createdWindow.on("focus", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        true
-      );
-
-      // Add to focus history
-      const shouldUpdateFocusHistory =
-        !this.writeWindowFocusHistory.length ||
-        (this.writeWindowFocusHistory.length &&
-          this.writeWindowFocusHistory[
-            this.writeWindowFocusHistory.length - 1
-          ] !== wcId);
-
-      if (shouldUpdateFocusHistory) this.writeWindowFocusHistory.push(wcId);
-
       this.menuManager.useMenu(MenuName.write);
+      this._onCommonWindowFocus(createdWindow);
     });
 
     createdWindow.on("blur", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        false
-      );
+      this._onCommonWindowBlur(createdWindow);
     });
 
     createdWindow.on("close", () => {
-      // Remove from focus history
-      this.writeWindowFocusHistory = this.writeWindowFocusHistory.filter(
-        (otherIds) => otherIds !== wcId
-      );
-
       this._onCommonWindowClose(createdWindow);
     });
 
@@ -300,19 +294,6 @@ export default class WindowManager extends BaseManager {
 
     this._onCommonWindowCreate(createdWindow, WindowType.Write);
   };
-
-  _onWriteWindowCreateWithNoteEditInfo(
-    createdWindow: BrowserWindow,
-    noteEditInfo: NoteEditInfo
-  ) {
-    const wcId = createdWindow.webContents.id;
-    createdWindow.webContents.send(
-      IPC_MESSAGE.FROM_MAIN.SEND_NOTE_FOR_EDIT,
-      noteEditInfo
-    );
-
-    this.assignWriteWindowSearcherIndex(wcId, noteEditInfo.searcherIndex);
-  }
 
   /*
   SECTION: Get specific windows
@@ -359,10 +340,14 @@ export default class WindowManager extends BaseManager {
   }
 
   getLastFocusedWriteWindow(): BrowserWindow | null {
-    if (!this.writeWindowFocusHistory.length) return null;
-    const wcId =
-      this.writeWindowFocusHistory[this.writeWindowFocusHistory.length - 1];
-    return this.wcToBrowserWindowMap[wcId];
+    if (!this.focusHistory.length) return null;
+    for (let i = this.focusHistory.length - 1; i >= 0; i--) {
+      const wcId = this.focusHistory[i];
+      if (this.wcToWindowTypeMap[wcId] === WindowType.Write) {
+        return this.wcToBrowserWindowMap[wcId];
+      }
+    }
+    return null;
   }
 
   getBrowserWindowFromSearcherIndex(
@@ -446,6 +431,11 @@ export default class WindowManager extends BaseManager {
     delete this.wcToWindowPositionMap[wcId];
     delete this.wcToWindowSizeMap[wcId];
     if (this.wcToSearcherIndexMap[wcId]) delete this.wcToSearcherIndexMap[wcId];
+
+    // Remove from focus history
+    this.focusHistory = this.focusHistory.filter(
+      (otherIds) => otherIds !== wcId
+    );
   }
 
   /*
@@ -506,8 +496,25 @@ export default class WindowManager extends BaseManager {
     windows.forEach((window) => window.setClosable(true));
   }
 
-  getWriteWindowFocusHistory() {
-    return this.writeWindowFocusHistory;
+  getFocusHistory() {
+    return this.focusHistory;
+  }
+
+  /**
+   * Clean focus history removes any duplicates for rendering purposes, biasing later entries of duplicates
+   */
+  getCleanFocusHistory() {
+    if (!this.focusHistory.length) return [];
+    const toReturn: number[] = [];
+    const duplicateSet = new Set<number>();
+    for (let i = this.focusHistory.length - 1; i >= 0; i--) {
+      const wcId = this.focusHistory[i];
+      if (!duplicateSet.has(wcId)) {
+        toReturn.unshift(wcId);
+        duplicateSet.add(wcId);
+      }
+    }
+    return toReturn;
   }
 
   getAllMaps() {

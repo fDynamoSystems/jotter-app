@@ -2,6 +2,7 @@ import BaseManager from "../BaseManager";
 import {
   OpenSearchWindowSettings,
   OpenWriteWindowSettings,
+  WindowType,
 } from "../WindowManager/types";
 
 /*
@@ -77,26 +78,26 @@ export default class ModeManager extends BaseManager {
     const editModeMemory = this.memoryManager.loadEditModeFromMemory();
 
     // Transform memory load to inputs for opening search window
-    const openSearchWindowSettings: OpenSearchWindowSettings = { query: "" };
     if (editModeMemory) {
-      openSearchWindowSettings.query = editModeMemory.searchQuery;
-      openSearchWindowSettings.createSettings = {
-        ...editModeMemory.searchWindowVisualDetails,
-      };
-    }
-
-    this.windowManager.openSearchWindow(openSearchWindowSettings);
-
-    // Open other write windows depending on memory
-    if (editModeMemory)
-      editModeMemory.writeWindowDetailsList.forEach((windowDetails) => {
-        const openWriteWindowSettings: OpenWriteWindowSettings = {
-          noteEditInfo: windowDetails.noteEditInfo || undefined,
-          createSettings: { ...windowDetails.windowVisualDetails },
-        };
-        this.windowManager.openWriteWindowForNote(openWriteWindowSettings);
+      editModeMemory.windowDetailsList.forEach((windowDetails) => {
+        if (windowDetails.windowType === WindowType.Write) {
+          const writeWindowSettings: OpenWriteWindowSettings = {
+            noteEditInfo: windowDetails.noteEditInfo || undefined,
+            createSettings: { ...windowDetails.windowVisualDetails },
+          };
+          this.windowManager.openWriteWindowForNote(writeWindowSettings);
+        } else if (windowDetails.windowType === WindowType.Search) {
+          const searchWindowSettings: OpenSearchWindowSettings = {
+            query: "",
+          };
+          searchWindowSettings.query = editModeMemory.searchQuery;
+          searchWindowSettings.createSettings = {
+            ...windowDetails.windowVisualDetails,
+          };
+          this.windowManager.openSearchWindow(searchWindowSettings);
+        }
       });
-
+    } else this.windowManager.openSearchWindow();
     // TODO: Show all at same time!
   }
 
