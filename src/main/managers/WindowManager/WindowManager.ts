@@ -339,6 +339,12 @@ export default class WindowManager extends BaseManager {
     return toReturn;
   }
 
+  getLastFocusedWindow(): BrowserWindow | null {
+    if (!this.focusHistory.length) return null;
+    const wcId = this.focusHistory[this.focusHistory.length - 1];
+    return this.wcToBrowserWindowMap[wcId] || null;
+  }
+
   getLastFocusedWriteWindow(): BrowserWindow | null {
     if (!this.focusHistory.length) return null;
     for (let i = this.focusHistory.length - 1; i >= 0; i--) {
@@ -475,6 +481,10 @@ export default class WindowManager extends BaseManager {
 
   focusLastFocusedWriteWindow() {
     this.getLastFocusedWriteWindow()?.focus();
+  }
+
+  focusLastFocusedWindow() {
+    this.getLastFocusedWindow()?.focus();
   }
 
   /*

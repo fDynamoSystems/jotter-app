@@ -15,6 +15,7 @@ export enum AppMode {
 }
 export default class ModeManager extends BaseManager {
   private appMode: AppMode = AppMode.CLOSED;
+  private isSwitching: boolean = false;
 
   constructor() {
     super();
@@ -43,13 +44,15 @@ export default class ModeManager extends BaseManager {
   Mode switching functions
   */
   switchToClosedMode() {
-    this._onModeSwitch();
+    const shouldContinue = this._onModeSwitch(AppMode.CLOSED);
+    if (!shouldContinue) return;
 
     this.appMode = AppMode.CLOSED;
   }
 
   switchToWriteMode() {
-    this._onModeSwitch();
+    const shouldContinue = this._onModeSwitch(AppMode.WRITE);
+    if (!shouldContinue) return;
 
     if (this.appMode === AppMode.WRITE) return;
     this.appMode = AppMode.WRITE;
@@ -69,7 +72,8 @@ export default class ModeManager extends BaseManager {
   }
 
   switchToEditMode() {
-    this._onModeSwitch();
+    const shouldContinue = this._onModeSwitch(AppMode.EDIT);
+    if (!shouldContinue) return;
 
     if (this.appMode === AppMode.EDIT) return;
     this.appMode = AppMode.EDIT;
@@ -102,17 +106,29 @@ export default class ModeManager extends BaseManager {
   }
 
   // Called before any other logic in switch functions
-  _onModeSwitch() {
+  _onModeSwitch(newMode: AppMode) {
+    if (this.isSwitching) return false;
+    this.isSwitching = true;
+
     const oldMode = this.appMode;
+    const isSameMode = oldMode === newMode;
+
     if (oldMode === AppMode.WRITE) {
-      this._writeModeCleanup();
-      return;
+      if (!isSameMode) {
+        this._writeModeCleanup();
+      } else {
+        this.windowManager.focusLastFocusedWindow();
+      }
+    } else if (oldMode === AppMode.EDIT) {
+      if (!isSameMode) {
+        this._editModeCleanup();
+      } else {
+        this.windowManager.focusLastFocusedWindow();
+      }
     }
 
-    if (oldMode === AppMode.EDIT) {
-      this._editModeCleanup();
-      return;
-    }
+    this.isSwitching = false;
+    return true;
   }
 
   /**
