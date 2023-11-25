@@ -1,6 +1,7 @@
 import Fuse from "@custom_dependencies/fuse.js";
 import { QueryResultItem, RecentNotesIndex, SearcherDoc } from "./types";
 import { createExtendedQueryFromString, findAllMatches } from "./helpers";
+import { NoteEditInfo } from "@src/common/types";
 
 /*
 SearcherService is responsible for all querying / search related functionality in the app.
@@ -110,6 +111,11 @@ export default class SearcherService {
     });
   }
 
+  getNote(searcherIndex: number): SearcherDoc | null {
+    const rawNote = this.fuseObj.getDoc(searcherIndex);
+    return rawNote || null;
+  }
+
   search(query: string): QueryResultItem[] {
     const [queryComponents, extendedQuery] =
       createExtendedQueryFromString(query);
@@ -159,5 +165,18 @@ export default class SearcherService {
       });
 
     return results;
+  }
+
+  /**
+   * SECTION: Utilities
+   */
+  static convertSearcherDocToNoteEditInfo(
+    searcherDoc: SearcherDoc
+  ): NoteEditInfo {
+    return {
+      content: searcherDoc.content,
+      filepath: searcherDoc.filepath,
+      searcherIndex: searcherDoc.searcherIndex,
+    };
   }
 }
