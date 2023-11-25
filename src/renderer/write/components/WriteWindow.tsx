@@ -1,18 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
 import styles from "./WriteWindow.module.scss";
 import "@renderer/common/styles/global.scss";
-import { COMMAND_PREFIXES, SAVE_CHANGES_DELAY } from "../constants";
+import { NUM_SPACES_PER_TAB, SAVE_CHANGES_DELAY } from "../constants";
 import WindowTitle from "@renderer/common/components/WindowTitle";
 import { NoteEditInfo } from "@src/common/types";
 
 export default function WriteWindow() {
   const [writeVal, setWriteVal] = useState<string>("");
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const [textData, setTextData] = useState<{
+    caret: number;
+    target: (EventTarget & HTMLTextAreaElement) | null;
+  }>({ caret: -1, target: null }); // Store states for manipulations;
 
-  const noteEditInfoRef = useRef<NoteEditInfo | null>(null);
-  function setNoteEditInfo(newVal: NoteEditInfo | null) {
-    noteEditInfoRef.current = newVal;
-  }
+  const [noteEditInfo, setNoteEditInfo] = useState<NoteEditInfo | null>(null);
+
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const saveChangesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
@@ -27,10 +29,19 @@ export default function WriteWindow() {
   }, []);
 
   useEffect(() => {
+    if (textData.caret >= 0) {
+      textData.target?.setSelectionRange(
+        textData.caret + NUM_SPACES_PER_TAB,
+        textData.caret + NUM_SPACES_PER_TAB
+      );
+    }
+  }, [textData, writeVal]);
+
+  useEffect(() => {
     window.writeElectronAPI.onResetWriteWindowRequest(() => {
       if (saveChangesTimerRef.current) {
         clearTimeout(saveChangesTimerRef.current);
-        saveChanges(noteEditInfoRef.current, writeVal, false);
+        saveChanges(noteEditInfo, writeVal, false);
       }
       setNoteEditInfo(null);
       setWriteVal("");
@@ -39,23 +50,15 @@ export default function WriteWindow() {
     return () => {
       window.writeElectronAPI.removeResetWriteWindowRequestListener();
     };
-  }, [writeVal]);
+  }, [writeVal, noteEditInfo]);
 
-  function handleChange(newVal: string) {
-    if (newVal.startsWith(COMMAND_PREFIXES.COMMAND_START)) {
-      if (newVal.startsWith(COMMAND_PREFIXES.QUERYING)) {
-        window.commonElectronAPI.focusSearchWindow();
-        setWriteVal("");
-        return;
-      }
-      setWriteVal(newVal);
-      return;
-    }
-
+  function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const newVal = e.target.value;
     setWriteVal(newVal);
+    setTextData({ caret: -1, target: e.target });
 
     // Don't save if new note and only whitespace
-    if (!noteEditInfoRef.current && !newVal.trim().length) {
+    if (!noteEditInfo && !newVal.trim().length) {
       return;
     }
 
@@ -64,7 +67,7 @@ export default function WriteWindow() {
       clearTimeout(saveChangesTimerRef.current);
     }
     saveChangesTimerRef.current = setTimeout(
-      () => saveChanges(noteEditInfoRef.current, newVal),
+      () => saveChanges(noteEditInfo, newVal),
       SAVE_CHANGES_DELAY
     );
   }
@@ -92,6 +95,21 @@ export default function WriteWindow() {
     window.commonElectronAPI.closeCurrentWindow();
   }
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    const content = e.target.value;
+    const caret = e.target.selectionStart;
+
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const newText =
+        content.substring(0, caret) +
+        " ".repeat(NUM_SPACES_PER_TAB) +
+        content.substring(caret);
+      setWriteVal(newText);
+      setTextData({ caret: caret, target: e.target });
+    }
+  }
+
   return (
     <div className={styles.bgContainer}>
       <div className={styles.container}>
@@ -99,7 +117,8 @@ export default function WriteWindow() {
         <textarea
           className={styles.textArea}
           value={writeVal}
-          onChange={(e) => handleChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onChange={handleChange}
           placeholder={"New note..."}
           ref={textAreaRef}
         />

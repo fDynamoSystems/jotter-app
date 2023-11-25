@@ -100,11 +100,6 @@ async function initializeNotes(notesFolderPath: string) {
   // Start services
   searcherService.setSearcherDocs(searcherDocs);
   filerService.setNotesFolderPath(notesFolderPath);
-
-  const SHOW_DELAY = 50;
-  setTimeout(() => {
-    modeManager.switchToClosedMode();
-  }, SHOW_DELAY);
 }
 
 async function registerGlobalKeyboardShortcuts() {

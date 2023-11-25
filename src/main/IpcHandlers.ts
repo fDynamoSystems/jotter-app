@@ -275,10 +275,6 @@ export default class IpcHandlers {
 
     await settings.set(APP_SETTINGS.NOTES_FOLDER_PATH, newPath);
 
-    const SHOW_DELAY = 50;
-    setTimeout(() => {
-      this.modeManager.switchToClosedMode();
-    }, SHOW_DELAY);
     return true;
   };
 
