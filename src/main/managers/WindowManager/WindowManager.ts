@@ -1,15 +1,17 @@
 import { IPC_MESSAGE } from "@src/common/constants";
 import { BrowserWindow } from "electron";
 import { createSearchWindow } from "../../windows/createSearchWindow";
-import {
-  WriteWindowCreateSettings,
-  createWriteWindow,
-} from "../../windows/createWriteWindow";
+import { createWriteWindow } from "../../windows/createWriteWindow";
 import { NoteEditInfo } from "@src/common/types";
 import { createSettingsWindow } from "../../windows/createSettingsWindow";
 import { createIntroWindow } from "../../windows/createIntroWindow";
 import BaseManager from "../BaseManager";
 import { MenuName } from "../MenuManager/MenuManager";
+import {
+  OpenSearchWindowSettings,
+  OpenWriteWindowSettings,
+  WindowType,
+} from "./types";
 
 /*
 WINDOW MANAGER handles most window operations, e.g opening, closing, and tracking windows.
@@ -18,22 +20,9 @@ NOTES:
 - wcId stands for webContents id
 */
 
-export enum WindowType {
-  Intro,
-  Settings,
-  Search,
-  Write,
-  UniqueWrite,
-}
-
-export type OpenWriteWindowSettings = {
-  noteEditInfo?: NoteEditInfo;
-  createSettings?: WriteWindowCreateSettings;
-};
-
 export default class WindowManager extends BaseManager {
   // wc Maps
-  private wcToSearcherIndexMap: { [wcId: number]: number | null } = {};
+  private wcToSearcherIndexMap: { [wcId: number]: number } = {};
   private wcToBrowserWindowMap: { [wcId: number]: BrowserWindow } = {};
   private wcToWindowTypeMap: { [wcId: number]: WindowType } = {};
   private wcToWindowPositionMap: { [wcId: number]: number[] } = {};
@@ -59,8 +48,12 @@ export default class WindowManager extends BaseManager {
     return await createSettingsWindow(this._onSettingsWindowCreate);
   }
 
-  async openSearchWindow() {
-    return await createSearchWindow(this._onSearchWindowCreate);
+  async openSearchWindow(openSettings?: OpenSearchWindowSettings) {
+    return await createSearchWindow(
+      (createdWindow) =>
+        this._onSearchWindowCreate(createdWindow, openSettings?.query),
+      openSettings?.createSettings
+    );
   }
 
   /*
@@ -176,7 +169,7 @@ export default class WindowManager extends BaseManager {
     this._onCommonWindowCreate(createdWindow, WindowType.Settings);
   };
 
-  _onSearchWindowCreate = (createdWindow: BrowserWindow) => {
+  _onSearchWindowCreate = (createdWindow: BrowserWindow, query?: string) => {
     const wcId = createdWindow.webContents.id;
     this.searchWindow = wcId;
 
@@ -200,6 +193,13 @@ export default class WindowManager extends BaseManager {
       this.modeManager.switchToClosedMode();
       this._onCommonWindowClose(createdWindow);
     });
+
+    if (query) {
+      createdWindow.webContents.send(
+        IPC_MESSAGE.FROM_MAIN.SET_SEARCH_QUERY,
+        query
+      );
+    }
 
     this._onCommonWindowCreate(createdWindow, WindowType.Search);
   };
@@ -344,6 +344,20 @@ export default class WindowManager extends BaseManager {
     return toReturn;
   }
 
+  getAllWindowsByType(windowType: WindowType): BrowserWindow[] {
+    const toReturn: BrowserWindow[] = [];
+    Object.entries(this.wcToWindowTypeMap).forEach((entry) => {
+      const wcId = parseInt(entry[0]);
+      const currType = entry[1];
+      if (currType === windowType) {
+        const windowToAdd = this.wcToBrowserWindowMap[wcId];
+        if (windowToAdd) toReturn.push(windowToAdd);
+      }
+    });
+
+    return toReturn;
+  }
+
   getLastFocusedWriteWindow(): BrowserWindow | null {
     if (!this.writeWindowFocusHistory.length) return null;
     const wcId =
@@ -372,9 +386,9 @@ export default class WindowManager extends BaseManager {
   SECTION: Close windows
   */
   closeAllWriteWindows() {
-    Object.values(this.wcToBrowserWindowMap).forEach((window) => {
-      window.close();
-    });
+    this.getAllWindowsByType(WindowType.Write).forEach((window) =>
+      window.close()
+    );
   }
 
   closeWriteWindowBySearcherIndex(searcherIndex: number) {
@@ -406,6 +420,11 @@ export default class WindowManager extends BaseManager {
   closeUniqueWriteWindow() {
     const writeWindow = this.getUniqueWriteWindow();
     if (writeWindow) writeWindow.close();
+  }
+
+  closeSearchWindow() {
+    const searchWindow = this.getSearchWindow();
+    if (searchWindow) searchWindow.close();
   }
 
   /*
@@ -440,7 +459,7 @@ export default class WindowManager extends BaseManager {
   Removes searcher index assignment from write window, denoting that it is now a new note window
   */
   revertWriteWindowSearcherIndexUsingWcId(wcId: number) {
-    this.wcToSearcherIndexMap[wcId] = null;
+    if (this.wcToSearcherIndexMap[wcId]) delete this.wcToSearcherIndexMap[wcId];
   }
 
   /*

@@ -1,5 +1,8 @@
 import BaseManager from "../BaseManager";
-import { OpenWriteWindowSettings } from "../WindowManager/WindowManager";
+import {
+  OpenSearchWindowSettings,
+  OpenWriteWindowSettings,
+} from "../WindowManager/types";
 
 /*
 MODE MANAGER deals with the app's modes and works with other managers to show what is needed when modes change.
@@ -48,7 +51,6 @@ export default class ModeManager extends BaseManager {
     this._onModeSwitch();
 
     if (this.appMode === AppMode.WRITE) return;
-
     this.appMode = AppMode.WRITE;
 
     // Call memory and construct open window settings
@@ -56,8 +58,7 @@ export default class ModeManager extends BaseManager {
     const openWriteWindowSettings: OpenWriteWindowSettings = {};
     if (writeModeMemory) {
       openWriteWindowSettings.createSettings = {
-        position: writeModeMemory.uniqueWriteWindowPosition || undefined,
-        size: writeModeMemory.uniqueWriteWindowSize || undefined,
+        ...writeModeMemory.uniqueWriteWindowVisualDetails,
       };
       openWriteWindowSettings.noteEditInfo =
         writeModeMemory.uniqueWriteWindowNoteEditInfo || undefined;
@@ -71,7 +72,32 @@ export default class ModeManager extends BaseManager {
 
     if (this.appMode === AppMode.EDIT) return;
     this.appMode = AppMode.EDIT;
-    this.windowManager.openSearchWindow();
+
+    // Call memory load
+    const editModeMemory = this.memoryManager.loadEditModeFromMemory();
+
+    // Transform memory load to inputs for opening search window
+    const openSearchWindowSettings: OpenSearchWindowSettings = { query: "" };
+    if (editModeMemory) {
+      openSearchWindowSettings.query = editModeMemory.searchQuery;
+      openSearchWindowSettings.createSettings = {
+        ...editModeMemory.searchWindowVisualDetails,
+      };
+    }
+
+    this.windowManager.openSearchWindow(openSearchWindowSettings);
+
+    // Open other write windows depending on memory
+    if (editModeMemory)
+      editModeMemory.writeWindowDetailsList.forEach((windowDetails) => {
+        const openWriteWindowSettings: OpenWriteWindowSettings = {
+          noteEditInfo: windowDetails.noteEditInfo || undefined,
+          createSettings: { ...windowDetails.windowVisualDetails },
+        };
+        this.windowManager.openWriteWindowForNote(openWriteWindowSettings);
+      });
+
+    // TODO: Show all at same time!
   }
 
   // Called before any other logic in switch functions
@@ -90,6 +116,9 @@ export default class ModeManager extends BaseManager {
 
   /**
    * SECTION: Clean up functions are called when the app leaves a certain mode
+   *
+   * OPPORTUNITIES:
+   * - Instead of individual closing functions, use closeAllWindows instead
    */
   _writeModeCleanup() {
     this.memoryManager.saveWriteModeToMemory();
@@ -98,6 +127,13 @@ export default class ModeManager extends BaseManager {
   }
 
   _editModeCleanup() {
-    // TODO: Save to memory then close all windows for this
+    // Save to memory
+    this.memoryManager.saveEditModeToMemory();
+
+    // Close search window
+    this.windowManager.closeSearchWindow();
+
+    // Close other write windows
+    this.windowManager.closeAllWriteWindows();
   }
 }

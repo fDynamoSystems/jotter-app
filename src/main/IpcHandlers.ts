@@ -184,6 +184,7 @@ export default class IpcHandlers {
   };
 
   private queryNotes = (_event: Electron.IpcMainInvokeEvent, query: string) => {
+    this.memoryManager.saveSearchQuery(query);
     return this.searcherService.search(query);
   };
 
@@ -192,6 +193,7 @@ export default class IpcHandlers {
   };
 
   private getRecentNotes = () => {
+    this.memoryManager.saveSearchQuery("");
     return this.searcherService.getRecentNotes();
   };
 
