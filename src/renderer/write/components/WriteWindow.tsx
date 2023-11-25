@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import styles from "./WriteWindow.module.scss";
 import "@renderer/common/styles/global.scss";
-import { NUM_SPACES_PER_TAB, SAVE_CHANGES_DELAY } from "../constants";
+import { SAVE_CHANGES_DELAY } from "../constants";
 import WindowTitle from "@renderer/common/components/WindowTitle";
 import { NoteEditInfo } from "@src/common/types";
 
+const TAB_CHARACTER = "\t";
 export default function WriteWindow() {
   const [writeVal, setWriteVal] = useState<string>("");
   const [textData, setTextData] = useState<{
@@ -31,8 +32,8 @@ export default function WriteWindow() {
   useEffect(() => {
     if (textData.caret >= 0) {
       textData.target?.setSelectionRange(
-        textData.caret + NUM_SPACES_PER_TAB,
-        textData.caret + NUM_SPACES_PER_TAB
+        textData.caret + TAB_CHARACTER.length,
+        textData.caret + TAB_CHARACTER.length
       );
     }
   }, [textData, writeVal]);
@@ -102,9 +103,7 @@ export default function WriteWindow() {
     if (e.key === "Tab") {
       e.preventDefault();
       const newText =
-        content.substring(0, caret) +
-        " ".repeat(NUM_SPACES_PER_TAB) +
-        content.substring(caret);
+        content.substring(0, caret) + TAB_CHARACTER + content.substring(caret);
       setWriteVal(newText);
       setTextData({ caret: caret, target: e.target });
     }
