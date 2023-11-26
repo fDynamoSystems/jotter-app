@@ -12,19 +12,26 @@ import {
 import { getActiveScreenBounds } from "./helpers";
 import { WindowCreateSettings } from "./types";
 
-const MIN_WINDOW_WIDTH = 420;
-const MIN_WINDOW_HEIGHT = 280;
+export const WRITE_WINDOW_CONSTANTS = {
+  WINDOW_WIDTH: 420,
+  WINDOW_HEIGHT: 280,
+  MIN_WINDOW_WIDTH: 420,
+  MIN_WINDOW_HEIGHT: 280,
+} as const;
+
 const getWriteWindowInitConfig = (): BrowserWindowConstructorOptions => {
   const screenBounds = getActiveScreenBounds();
+  const { WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT } =
+    WRITE_WINDOW_CONSTANTS;
 
   return {
-    x: Math.floor(screenBounds.x + (screenBounds.width - MIN_WINDOW_WIDTH) / 2),
+    x: Math.floor(screenBounds.x + (screenBounds.width - WINDOW_WIDTH) / 2),
     y: Math.floor(screenBounds.y + screenBounds.height * 0.15),
     minWidth: MIN_WINDOW_WIDTH,
     minHeight: MIN_WINDOW_HEIGHT,
     maxHeight: Math.floor(0.8 * screenBounds.height),
-    width: MIN_WINDOW_WIDTH,
-    height: MIN_WINDOW_HEIGHT,
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT,
     frame: false,
     resizable: true,
     transparent: false,

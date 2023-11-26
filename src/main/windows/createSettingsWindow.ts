@@ -13,6 +13,7 @@ import { getActiveScreenBounds } from "./helpers";
 
 const WINDOW_WIDTH = 460;
 const WINDOW_HEIGHT = 320;
+
 const getSettingsWindowInitConfig = (): BrowserWindowConstructorOptions => {
   const screenBounds = getActiveScreenBounds();
   return {
