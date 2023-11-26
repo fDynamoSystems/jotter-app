@@ -497,6 +497,9 @@ export default class WindowManager extends BaseManager {
     } else if (this.modeManager.isAppInEditMode()) {
       const lastFocused = this.getLastFocusedWriteWindow();
       if (lastFocused) this.resetWriteWindowContents(lastFocused);
+      else {
+        this.openWriteWindowForNote();
+      }
     }
   }
 

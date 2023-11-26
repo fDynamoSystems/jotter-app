@@ -56,6 +56,13 @@ export default class MenuManager extends BaseManager {
           accelerator: KeyboardShortcuts.WRITE_NOTE,
           click: () => this.modeManager.switchToWriteMode(),
         },
+        {
+          label: "New note",
+          accelerator: KeyboardShortcuts.NEW_NOTE,
+          click: () => {
+            this.windowManager.handleNewNote();
+          },
+        },
         { type: "separator" },
         {
           label: "Search notes",
@@ -104,7 +111,7 @@ export default class MenuManager extends BaseManager {
     const menu = this.createDefaultMenu();
     const mainSubmenu = menu[0]
       .submenu as Electron.MenuItemConstructorOptions[];
-    mainSubmenu.splice(0, 3);
+    mainSubmenu.splice(0, 4);
     return menu;
   }
 }
