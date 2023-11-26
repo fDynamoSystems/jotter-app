@@ -35,6 +35,7 @@ export enum KeyboardShortcuts {
   SEARCH_ENTRY = "Alt+CommandOrControl+F",
   CLOSE_APP = "Escape",
   NEW_NOTE = "CommandOrControl+N",
+  NEW_NOTE_WINDOW = "Shift+CommandOrControl+N",
   SEARCH_NOTES = "Shift+CommandOrControl+F",
   WRITE_NOTE = "Shift+CommandOrControl+E",
   QUIT_APP = "CommandOrControl+Q",

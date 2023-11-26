@@ -32,7 +32,6 @@ export default class WindowManager extends BaseManager {
   private searchWindow: number | null = null;
   private settingsWindow: number | null = null;
   private introWindow: number | null = null;
-  private uniqueWriteWindow: number | null = null;
 
   // other states
   private focusHistory: number[] = []; // Items in array are wcIds
@@ -56,22 +55,7 @@ export default class WindowManager extends BaseManager {
     );
   }
 
-  /*
-  This write window is the only one created for write mode
-  */
-  async openUniqueWriteWindow(openSettings?: OpenWriteWindowSettings) {
-    return await createWriteWindow((createdWindow) => {
-      this._onUniqueWriteWindowCreate(
-        createdWindow,
-        openSettings?.noteEditInfo
-      );
-    }, openSettings?.createSettings);
-  }
-
-  /**
-   * this is used only in edit mode
-   */
-  async openWriteWindowForNote(openSettings?: OpenWriteWindowSettings) {
+  async openWriteWindow(openSettings?: OpenWriteWindowSettings) {
     const prevWindow = this.getLastFocusedWriteWindow();
 
     const newWindow = await createWriteWindow((createdWindow) => {
@@ -122,6 +106,9 @@ export default class WindowManager extends BaseManager {
 
   _onCommonWindowClose = (createdWindow: BrowserWindow) => {
     this.deregisterWindow(createdWindow);
+    if (this.focusHistory.length === 0) {
+      this.modeManager.switchToClosedMode();
+    }
   };
 
   _onCommonWindowFocus = (createdWindow: BrowserWindow) => {
@@ -141,19 +128,6 @@ export default class WindowManager extends BaseManager {
   _onCommonWindowBlur = (createdWindow: BrowserWindow) => {
     createdWindow.webContents.send(IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED, false);
   };
-
-  _onWriteWindowCreateWithNoteEditInfo(
-    createdWindow: BrowserWindow,
-    noteEditInfo: NoteEditInfo
-  ) {
-    const wcId = createdWindow.webContents.id;
-    createdWindow.webContents.send(
-      IPC_MESSAGE.FROM_MAIN.SEND_NOTE_FOR_EDIT,
-      noteEditInfo
-    );
-
-    this.assignWriteWindowSearcherIndex(wcId, noteEditInfo.searcherIndex);
-  }
 
   /**
    * SUB-SECTION: Specific window create functions
@@ -215,7 +189,6 @@ export default class WindowManager extends BaseManager {
 
     createdWindow.on("close", () => {
       this.searchWindow = null;
-      this.modeManager.switchToClosedMode();
       this._onCommonWindowClose(createdWindow);
     });
 
@@ -229,40 +202,13 @@ export default class WindowManager extends BaseManager {
     this._onCommonWindowCreate(createdWindow, WindowType.Search);
   };
 
-  _onUniqueWriteWindowCreate = (
-    createdWindow: BrowserWindow,
-    noteEditInfo?: NoteEditInfo
-  ) => {
-    const wcId = createdWindow.webContents.id;
-    this.uniqueWriteWindow = wcId;
-
-    createdWindow.on("focus", () => {
-      this.menuManager.useMenu(MenuName.write);
-      this._onCommonWindowFocus(createdWindow);
-    });
-
-    createdWindow.on("blur", () => {
-      this._onCommonWindowBlur(createdWindow);
-    });
-
-    createdWindow.on("close", () => {
-      this.uniqueWriteWindow = null;
-      this.modeManager.switchToClosedMode();
-      this._onCommonWindowClose(createdWindow);
-    });
-
-    if (noteEditInfo) {
-      this._onWriteWindowCreateWithNoteEditInfo(createdWindow, noteEditInfo);
-    }
-
-    this._onCommonWindowCreate(createdWindow, WindowType.UniqueWrite);
-  };
-
   _onWriteWindowCreate = (
     createdWindow: BrowserWindow,
     noteEditInfo: NoteEditInfo | null,
     prevWindow: BrowserWindow | null
   ) => {
+    const wcId = createdWindow.webContents.id;
+
     createdWindow.on("focus", () => {
       this.menuManager.useMenu(MenuName.write);
       this._onCommonWindowFocus(createdWindow);
@@ -277,7 +223,12 @@ export default class WindowManager extends BaseManager {
     });
 
     if (noteEditInfo) {
-      this._onWriteWindowCreateWithNoteEditInfo(createdWindow, noteEditInfo);
+      createdWindow.webContents.send(
+        IPC_MESSAGE.FROM_MAIN.SEND_NOTE_FOR_EDIT,
+        noteEditInfo
+      );
+
+      this.assignWriteWindowSearcherIndex(wcId, noteEditInfo.searcherIndex);
     }
 
     if (prevWindow) {
@@ -311,11 +262,6 @@ export default class WindowManager extends BaseManager {
   getSearchWindow(): BrowserWindow | null {
     if (this.searchWindow === null) return null;
     return this.wcToBrowserWindowMap[this.searchWindow];
-  }
-
-  getUniqueWriteWindow(): BrowserWindow | null {
-    if (this.uniqueWriteWindow === null) return null;
-    return this.wcToBrowserWindowMap[this.uniqueWriteWindow];
   }
 
   getAllOpenWindowsList(): BrowserWindow[] {
@@ -408,11 +354,6 @@ export default class WindowManager extends BaseManager {
     });
   }
 
-  closeUniqueWriteWindow() {
-    const writeWindow = this.getUniqueWriteWindow();
-    if (writeWindow) writeWindow.close();
-  }
-
   closeSearchWindow() {
     const searchWindow = this.getSearchWindow();
     if (searchWindow) searchWindow.close();
@@ -474,6 +415,12 @@ export default class WindowManager extends BaseManager {
     this.getSearchWindow()?.focus();
   }
 
+  focusOrCreateSearchWindow() {
+    const currWindow = this.getSearchWindow();
+    if (currWindow) currWindow.focus();
+    else this.openSearchWindow();
+  }
+
   focusWriteWindow(wcId: number) {
     if (this.wcToBrowserWindowMap[wcId])
       this.wcToBrowserWindowMap[wcId].focus();
@@ -481,6 +428,12 @@ export default class WindowManager extends BaseManager {
 
   focusLastFocusedWriteWindow() {
     this.getLastFocusedWriteWindow()?.focus();
+  }
+
+  focusOrCreateLastFocusedWriteWindow() {
+    const currWindow = this.getLastFocusedWriteWindow();
+    if (currWindow) currWindow.focus();
+    else this.openWriteWindow();
   }
 
   focusLastFocusedWindow() {
@@ -491,14 +444,11 @@ export default class WindowManager extends BaseManager {
   SECTION: Utility
   */
   handleNewNote() {
-    if (this.modeManager.isAppInWriteMode()) {
-      const uniqueWriteWindow = this.getUniqueWriteWindow();
-      if (uniqueWriteWindow) this.resetWriteWindowContents(uniqueWriteWindow);
-    } else if (this.modeManager.isAppInEditMode()) {
+    if (this.modeManager.isAppInOpenMode()) {
       const lastFocused = this.getLastFocusedWriteWindow();
       if (lastFocused) this.resetWriteWindowContents(lastFocused);
       else {
-        this.openWriteWindowForNote();
+        this.openWriteWindow();
       }
     }
   }
@@ -528,6 +478,10 @@ export default class WindowManager extends BaseManager {
       }
     }
     return toReturn;
+  }
+
+  setFocusHistory(newHistory: number[]) {
+    this.focusHistory = newHistory;
   }
 
   getAllMaps() {

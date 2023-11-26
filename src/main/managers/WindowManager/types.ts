@@ -7,7 +7,6 @@ export enum WindowType {
   Settings,
   Search,
   Write,
-  UniqueWrite,
 }
 
 export type OpenWriteWindowSettings = {

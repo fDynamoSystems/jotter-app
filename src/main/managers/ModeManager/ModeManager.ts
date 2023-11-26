@@ -7,12 +7,13 @@ import {
 
 /*
 MODE MANAGER deals with the app's modes and works with other managers to show what is needed when modes change.
+A mode is a configuration of windows. This idea was created when writing and editing / searching were separate modes.
 */
 export enum AppMode {
   CLOSED,
-  WRITE,
-  EDIT,
+  OPEN,
 }
+
 export default class ModeManager extends BaseManager {
   private appMode: AppMode = AppMode.CLOSED;
   private isSwitching: boolean = false;
@@ -32,12 +33,8 @@ export default class ModeManager extends BaseManager {
     return this.appMode === AppMode.CLOSED;
   }
 
-  isAppInWriteMode() {
-    return this.appMode === AppMode.WRITE;
-  }
-
-  isAppInEditMode() {
-    return this.appMode === AppMode.EDIT;
+  isAppInOpenMode() {
+    return this.appMode === AppMode.OPEN;
   }
 
   /*
@@ -50,59 +47,67 @@ export default class ModeManager extends BaseManager {
     this.appMode = AppMode.CLOSED;
   }
 
-  switchToWriteMode() {
-    const shouldContinue = this._onModeSwitch(AppMode.WRITE);
+  async switchToOpenMode() {
+    const shouldContinue = this._onModeSwitch(AppMode.OPEN);
     if (!shouldContinue) return;
 
-    if (this.appMode === AppMode.WRITE) return;
-    this.appMode = AppMode.WRITE;
-
-    // Call memory and construct open window settings
-    const writeModeMemory = this.memoryManager.loadWriteModeFromMemory();
-    const openWriteWindowSettings: OpenWriteWindowSettings = {};
-    if (writeModeMemory) {
-      openWriteWindowSettings.createSettings = {
-        ...writeModeMemory.uniqueWriteWindowVisualDetails,
-      };
-      openWriteWindowSettings.noteEditInfo =
-        writeModeMemory.uniqueWriteWindowNoteEditInfo || undefined;
-    }
-
-    this.windowManager.openUniqueWriteWindow(openWriteWindowSettings);
-  }
-
-  switchToEditMode() {
-    const shouldContinue = this._onModeSwitch(AppMode.EDIT);
-    if (!shouldContinue) return;
-
-    if (this.appMode === AppMode.EDIT) return;
-    this.appMode = AppMode.EDIT;
+    if (this.appMode === AppMode.OPEN) return;
+    this.appMode = AppMode.OPEN;
 
     // Call memory load
-    const editModeMemory = this.memoryManager.loadEditModeFromMemory();
+    const openModeMemory = this.memoryManager.loadOpenModeFromMemory();
 
     // Transform memory load to inputs for opening search window
-    if (editModeMemory) {
-      editModeMemory.windowDetailsList.forEach((windowDetails) => {
-        if (windowDetails.windowType === WindowType.Write) {
-          const writeWindowSettings: OpenWriteWindowSettings = {
-            noteEditInfo: windowDetails.noteEditInfo || undefined,
-            createSettings: { ...windowDetails.windowVisualDetails },
-          };
-          this.windowManager.openWriteWindowForNote(writeWindowSettings);
-        } else if (windowDetails.windowType === WindowType.Search) {
-          const searchWindowSettings: OpenSearchWindowSettings = {
-            query: "",
-          };
-          searchWindowSettings.query = editModeMemory.searchQuery;
-          searchWindowSettings.createSettings = {
-            ...windowDetails.windowVisualDetails,
-          };
-          this.windowManager.openSearchWindow(searchWindowSettings);
-        }
-      });
-    } else this.windowManager.openSearchWindow();
-    // TODO: Show all at same time!
+    const newFocusHistory: number[] = [];
+
+    if (openModeMemory) {
+      await Promise.all(
+        openModeMemory.windowDetailsList.map(async (windowDetails) => {
+          if (windowDetails.windowType === WindowType.Write) {
+            const writeWindowSettings: OpenWriteWindowSettings = {
+              noteEditInfo: windowDetails.noteEditInfo || undefined,
+              createSettings: { ...windowDetails.windowVisualDetails },
+            };
+            const window = await this.windowManager.openWriteWindow(
+              writeWindowSettings
+            );
+            newFocusHistory.push(window.webContents.id);
+          } else if (windowDetails.windowType === WindowType.Search) {
+            const searchWindowSettings: OpenSearchWindowSettings = {
+              query: "",
+            };
+            searchWindowSettings.query = openModeMemory.searchQuery;
+            searchWindowSettings.createSettings = {
+              ...windowDetails.windowVisualDetails,
+            };
+            const window = await this.windowManager.openSearchWindow(
+              searchWindowSettings
+            );
+            newFocusHistory.push(window.webContents.id);
+          }
+        })
+      );
+    } else {
+      await (async () => {
+        const searchWindow = await this.windowManager.openSearchWindow();
+        const writeWindow = await this.windowManager.openWriteWindow();
+
+        newFocusHistory.push(searchWindow.webContents.id);
+        newFocusHistory.push(writeWindow.webContents.id);
+      })();
+    }
+
+    this.windowManager.setFocusHistory(newFocusHistory);
+  }
+
+  async switchToOpenModeThenWrite() {
+    await this.switchToOpenMode();
+    this.windowManager.focusOrCreateLastFocusedWriteWindow();
+  }
+
+  async switchToOpenModeThenSearch() {
+    await this.switchToOpenMode();
+    this.windowManager.focusOrCreateSearchWindow();
   }
 
   // Called before any other logic in switch functions
@@ -113,20 +118,11 @@ export default class ModeManager extends BaseManager {
     const oldMode = this.appMode;
     const isSameMode = oldMode === newMode;
 
-    if (oldMode === AppMode.WRITE) {
+    if (oldMode === AppMode.OPEN) {
       if (!isSameMode) {
-        this._writeModeCleanup();
-      } else {
-        this.windowManager.focusLastFocusedWindow();
-      }
-    } else if (oldMode === AppMode.EDIT) {
-      if (!isSameMode) {
-        this._editModeCleanup();
-      } else {
-        this.windowManager.focusLastFocusedWindow();
+        this._openModeCleanup();
       }
     }
-
     this.isSwitching = false;
     return true;
   }
@@ -137,20 +133,12 @@ export default class ModeManager extends BaseManager {
    * OPPORTUNITIES:
    * - Instead of individual closing functions, use closeAllWindows instead
    */
-  _writeModeCleanup() {
-    this.memoryManager.saveWriteModeToMemory();
-    // NOTE: If we add more windows, close them here too
-    this.windowManager.closeUniqueWriteWindow();
-  }
 
-  _editModeCleanup() {
+  _openModeCleanup() {
     // Save to memory
-    this.memoryManager.saveEditModeToMemory();
+    this.memoryManager.saveOpenModeToMemory();
 
-    // Close search window
-    this.windowManager.closeSearchWindow();
-
-    // Close other write windows
-    this.windowManager.closeAllWriteWindows();
+    // Close windows
+    this.windowManager.closeAllWindows();
   }
 }

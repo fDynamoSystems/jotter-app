@@ -52,9 +52,9 @@ export default class MenuManager extends BaseManager {
       label: "first",
       submenu: [
         {
-          label: "Write note",
+          label: "Write",
           accelerator: KeyboardShortcuts.WRITE_NOTE,
-          click: () => this.modeManager.switchToWriteMode(),
+          click: () => this.windowManager.focusOrCreateLastFocusedWriteWindow(),
         },
         {
           label: "New note",
@@ -63,11 +63,18 @@ export default class MenuManager extends BaseManager {
             this.windowManager.handleNewNote();
           },
         },
+        {
+          label: "New note window",
+          accelerator: KeyboardShortcuts.NEW_NOTE_WINDOW,
+          click: () => {
+            this.windowManager.openWriteWindow();
+          },
+        },
         { type: "separator" },
         {
           label: "Search notes",
           accelerator: KeyboardShortcuts.SEARCH_NOTES,
-          click: () => this.modeManager.switchToEditMode(),
+          click: () => this.windowManager.focusOrCreateSearchWindow(),
         },
         { type: "separator" },
         {
@@ -111,7 +118,7 @@ export default class MenuManager extends BaseManager {
     const menu = this.createDefaultMenu();
     const mainSubmenu = menu[0]
       .submenu as Electron.MenuItemConstructorOptions[];
-    mainSubmenu.splice(0, 4);
+    mainSubmenu.splice(0, 5);
     return menu;
   }
 }

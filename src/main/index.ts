@@ -104,35 +104,35 @@ async function initializeNotes(notesFolderPath: string) {
 
 async function registerGlobalKeyboardShortcuts() {
   // Register write entry shortcut
-  let writeEntryShortcut = (await settings.get(
-    APP_SETTINGS.WRITE_ENTRY_SHORTCUT
+  let openEntryShortcut = (await settings.get(
+    APP_SETTINGS.OPEN_ENTRY_SHORTCUT
   )) as string;
-  if (!writeEntryShortcut) {
+  if (!openEntryShortcut) {
     settings.set(
-      APP_SETTINGS.WRITE_ENTRY_SHORTCUT,
-      KeyboardShortcuts.WRITE_ENTRY
+      APP_SETTINGS.OPEN_ENTRY_SHORTCUT,
+      KeyboardShortcuts.OPEN_ENTRY
     );
-    writeEntryShortcut = KeyboardShortcuts.WRITE_ENTRY;
+    openEntryShortcut = KeyboardShortcuts.OPEN_ENTRY;
   }
 
-  globalShortcut.register(writeEntryShortcut, async () => {
-    modeManager.switchToWriteMode();
+  globalShortcut.register(openEntryShortcut, async () => {
+    modeManager.switchToOpenModeThenWrite();
   });
 
-  // Register edit entry shortcut
-  let editEntryShortcut = (await settings.get(
-    APP_SETTINGS.EDIT_ENTRY_SHORTCUT
+  // Register search entry shortcut
+  let searchEntryShortcut = (await settings.get(
+    APP_SETTINGS.SEARCH_ENTRY_SHORTCUT
   )) as string;
-  if (!editEntryShortcut) {
+  if (!searchEntryShortcut) {
     settings.set(
-      APP_SETTINGS.EDIT_ENTRY_SHORTCUT,
-      KeyboardShortcuts.EDIT_ENTRY
+      APP_SETTINGS.SEARCH_ENTRY_SHORTCUT,
+      KeyboardShortcuts.SEARCH_ENTRY
     );
-    editEntryShortcut = KeyboardShortcuts.EDIT_ENTRY;
+    searchEntryShortcut = KeyboardShortcuts.SEARCH_ENTRY;
   }
 
-  globalShortcut.register(editEntryShortcut, async () => {
-    modeManager.switchToEditMode();
+  globalShortcut.register(searchEntryShortcut, async () => {
+    modeManager.switchToOpenModeThenSearch();
   });
 }
 

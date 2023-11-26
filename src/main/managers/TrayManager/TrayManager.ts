@@ -26,14 +26,16 @@ export default class TrayManager extends BaseManager {
       new MenuItem({
         label: "New note",
         click: () => {
-          this.modeManager.switchToWriteMode();
+          this.modeManager.switchToOpenModeThenWrite();
         },
       })
     );
     menu.append(
       new MenuItem({
         label: "Search notes",
-        click: () => this.modeManager.switchToEditMode(),
+        click: () => {
+          this.modeManager.switchToOpenModeThenSearch();
+        },
       })
     );
     menu.append(new MenuItem({ type: "separator" }));
@@ -41,7 +43,7 @@ export default class TrayManager extends BaseManager {
       new MenuItem({
         label: "Open settings",
         click: () => {
-          console.warn("TO IMPLEMENT!");
+          console.warn("TO IMPLEMENT open settings");
         },
       })
     );
@@ -64,10 +66,17 @@ export default class TrayManager extends BaseManager {
     const tray = new Tray(icon);
 
     tray.on("click", () => {
-      tray.popUpContextMenu(menu);
+      if (this.modeManager.isAppInCloseMode())
+        this.modeManager.switchToOpenMode();
+      else {
+        this.modeManager.switchToClosedMode();
+        tray.popUpContextMenu(menu);
+      }
     });
 
     tray.on("right-click", () => {
+      if (this.modeManager.isAppInOpenMode())
+        this.modeManager.switchToClosedMode();
       tray.popUpContextMenu(menu);
     });
 
