@@ -26,6 +26,11 @@ export default function WriteWindow() {
       setNoteEditInfo(noteToEdit);
       setWriteVal(noteToEdit.content);
     });
+    window.commonElectronAPI.onWindowFocusChange((_event, newFocus) => {
+      if (newFocus) {
+        textAreaRef.current?.focus();
+      }
+    });
     textAreaRef.current?.focus();
   }, []);
 
