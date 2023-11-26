@@ -13,6 +13,7 @@ import ModeManager from "./managers/ModeManager";
 import ElectronKeyboardManager from "./managers/ElectronKeyboardManager";
 import { ManagerList } from "./managers/BaseManager";
 import MemoryManager from "./managers/MemoryManager";
+import SettingsManager from "./managers/SettingsManager";
 
 const autoLauncher = new AutoLaunch({
   name: "Jotter",
@@ -49,6 +50,7 @@ const modeManager: ModeManager = new ModeManager();
 const electronKeyboardManager: ElectronKeyboardManager =
   new ElectronKeyboardManager();
 const memoryManager: MemoryManager = new MemoryManager(searcherService);
+const settingsManager: SettingsManager = new SettingsManager();
 const managerList: ManagerList = [
   windowManager,
   trayManager,
@@ -56,6 +58,7 @@ const managerList: ManagerList = [
   modeManager,
   electronKeyboardManager,
   memoryManager,
+  settingsManager,
 ];
 
 managerList.forEach((manager) => {

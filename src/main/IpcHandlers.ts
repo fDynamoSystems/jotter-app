@@ -12,6 +12,7 @@ import MenuManager from "./managers/MenuManager";
 import TrayManager from "./managers/TrayManager";
 import ElectronKeyboardManager from "./managers/ElectronKeyboardManager";
 import MemoryManager from "./managers/MemoryManager";
+import SettingsManager from "./managers/SettingsManager";
 
 const { ipcMain } = require("electron");
 
@@ -24,6 +25,7 @@ export default class IpcHandlers {
   private modeManager: ModeManager;
   private electronKeyboardManager: ElectronKeyboardManager;
   private memoryManager: MemoryManager;
+  private settingsManager: SettingsManager;
 
   constructor(
     searcher: SearcherService,
@@ -38,6 +40,7 @@ export default class IpcHandlers {
     this.modeManager = managerList[3];
     this.electronKeyboardManager = managerList[4];
     this.memoryManager = managerList[5];
+    this.settingsManager = managerList[6];
 
     // Two way handlers
     ipcMain.handle(IPC_MESSAGE.FROM_RENDERER.CREATE_NOTE, this.createNote);
