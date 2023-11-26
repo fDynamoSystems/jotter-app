@@ -20,13 +20,6 @@ const SETTINGS_ELECTRON_API: SettingsElectronAPI = {
       IPC_MESSAGE.FROM_RENDERER.OPEN_DIALOG_NOTES_FOLDER_PATH,
       "settings"
     ),
-  getWriteEntryShortcut: () =>
-    ipcRenderer.invoke(IPC_MESSAGE.FROM_RENDERER.GET_WRITE_ENTRY_SHORTCUT),
-  setWriteEntryShortcut: (newShortcut: string) =>
-    ipcRenderer.send(
-      IPC_MESSAGE.FROM_RENDERER.SET_WRITE_ENTRY_SHORTCUT,
-      newShortcut
-    ),
 };
 
 const COMMON_ELECTRON_API = getCommonPreloadFunctions();

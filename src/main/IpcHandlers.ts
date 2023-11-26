@@ -1,7 +1,7 @@
 import SearcherService from "./services/SearcherService";
 import FilerService from "./services/FilerService";
 import { APP_SETTINGS, IPC_MESSAGE } from "@src/common/constants";
-import { BrowserWindow, Menu, app, dialog, globalShortcut } from "electron";
+import { BrowserWindow, Menu, app, dialog } from "electron";
 import { NoteEditInfo } from "@src/common/types";
 import settings from "electron-settings";
 import { ScanAllFilesResult, scanAllNoteFiles } from "./scanAllNoteFiles";
@@ -61,10 +61,6 @@ export default class IpcHandlers {
       this.openDialogNotesFolderPath
     );
     ipcMain.handle(
-      IPC_MESSAGE.FROM_RENDERER.GET_WRITE_ENTRY_SHORTCUT,
-      this.getWriteEntryShortcut
-    );
-    ipcMain.handle(
       IPC_MESSAGE.FROM_RENDERER.INITIAL_SET_NOTES_FOLDER_PATH,
       this.initialSetNotesFolderPath
     );
@@ -98,10 +94,6 @@ export default class IpcHandlers {
     ipcMain.on(
       IPC_MESSAGE.FROM_RENDERER.SET_NOTES_FOLDER_PATH,
       this.setNotesFolderPath
-    );
-    ipcMain.on(
-      IPC_MESSAGE.FROM_RENDERER.SET_WRITE_ENTRY_SHORTCUT,
-      this.setWriteEntryShortcut
     );
     ipcMain.on(IPC_MESSAGE.FROM_RENDERER.CLOSE_INTRO, this.closeIntroWindow);
     ipcMain.on(
@@ -319,27 +311,6 @@ export default class IpcHandlers {
       return null;
     }
     return dialogRes.filePaths[0];
-  };
-
-  private setWriteEntryShortcut = async (
-    _event: Electron.IpcMainInvokeEvent,
-    newShortcut: string
-  ) => {
-    // Unregister old shortcut
-    const oldShortcut = (await this.getWriteEntryShortcut()) as
-      | string
-      | undefined;
-    if (oldShortcut) globalShortcut.unregister(oldShortcut);
-
-    // Register new shortcut
-    settings.set(APP_SETTINGS.WRITE_ENTRY_SHORTCUT, newShortcut);
-    globalShortcut.register(newShortcut, () =>
-      this.modeManager.switchToWriteMode()
-    );
-  };
-
-  private getWriteEntryShortcut = async () => {
-    return settings.get(APP_SETTINGS.WRITE_ENTRY_SHORTCUT);
   };
 
   private closeIntroWindow = async () => {
