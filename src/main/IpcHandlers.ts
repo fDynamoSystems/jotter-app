@@ -247,7 +247,10 @@ export default class IpcHandlers {
       return;
     }
 
-    await this.windowManager.openWriteWindow({ noteEditInfo });
+    await this.windowManager.openWriteWindow({
+      noteEditInfo,
+      immediatelyShow: true,
+    });
   };
 
   private getKeyboardModifiersState = (_event: Electron.IpcMainInvokeEvent) => {

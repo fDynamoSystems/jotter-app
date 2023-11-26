@@ -12,11 +12,13 @@ export enum WindowType {
 export type OpenWriteWindowSettings = {
   noteEditInfo?: NoteEditInfo;
   createSettings?: WindowCreateSettings;
+  immediatelyShow?: boolean;
 };
 
 export type OpenSearchWindowSettings = {
-  query: string;
+  query?: string;
   createSettings?: WindowCreateSettings;
+  immediatelyShow?: boolean;
 };
 
 export type WindowVisualDetails = {

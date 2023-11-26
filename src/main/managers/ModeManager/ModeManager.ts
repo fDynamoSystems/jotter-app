@@ -1,3 +1,4 @@
+import { SHOW_DELAY } from "@main/common/constants";
 import BaseManager from "../BaseManager";
 import {
   OpenSearchWindowSettings,
@@ -14,6 +15,10 @@ export enum AppMode {
   OPEN,
 }
 
+export type SwitchToOpenModeOptions = {
+  searchAfterwards?: boolean;
+  writeAfterwards?: boolean;
+};
 export default class ModeManager extends BaseManager {
   private appMode: AppMode = AppMode.CLOSED;
   private isSwitching: boolean = false;
@@ -47,7 +52,7 @@ export default class ModeManager extends BaseManager {
     this.appMode = AppMode.CLOSED;
   }
 
-  async switchToOpenMode() {
+  async switchToOpenMode(options?: SwitchToOpenModeOptions) {
     const shouldContinue = this._onModeSwitch(AppMode.OPEN);
     if (!shouldContinue) return;
 
@@ -58,11 +63,20 @@ export default class ModeManager extends BaseManager {
     const openModeMemory = this.memoryManager.loadOpenModeFromMemory();
 
     // Transform memory load to inputs for opening search window
-    const newFocusHistory: number[] = [];
+    const oldWcToNewWcMap: { [oldWcId: number]: number } = {}; // Relates all wcIds to new ones
+    let rawNewFocusHistory: (number | null)[] = []; // Will replace focus history with new window references
+
+    // Track these states incase we want to focus on one later
+    let searchWindowWc: number | null = null;
+    let lastFocusedWriteWindowWc: number | null = null;
 
     if (openModeMemory) {
+      // Get focus order by creating all windows in order
       await Promise.all(
         openModeMemory.windowDetailsList.map(async (windowDetails) => {
+          let oldWcId = null;
+          let newWcId = null;
+
           if (windowDetails.windowType === WindowType.Write) {
             const writeWindowSettings: OpenWriteWindowSettings = {
               noteEditInfo: windowDetails.noteEditInfo || undefined,
@@ -71,7 +85,10 @@ export default class ModeManager extends BaseManager {
             const window = await this.windowManager.openWriteWindow(
               writeWindowSettings
             );
-            newFocusHistory.push(window.webContents.id);
+
+            oldWcId = windowDetails.wcId;
+            newWcId = window.webContents.id;
+            lastFocusedWriteWindowWc = newWcId;
           } else if (windowDetails.windowType === WindowType.Search) {
             const searchWindowSettings: OpenSearchWindowSettings = {
               query: "",
@@ -83,31 +100,95 @@ export default class ModeManager extends BaseManager {
             const window = await this.windowManager.openSearchWindow(
               searchWindowSettings
             );
-            newFocusHistory.push(window.webContents.id);
+
+            oldWcId = windowDetails.wcId;
+            newWcId = window.webContents.id;
+            searchWindowWc = newWcId;
           }
+
+          if (oldWcId !== null && newWcId !== null)
+            oldWcToNewWcMap[oldWcId] = newWcId;
+          return newWcId;
         })
       );
-    } else {
-      await (async () => {
-        const searchWindow = await this.windowManager.openSearchWindow();
-        const writeWindow = await this.windowManager.openWriteWindow();
 
-        newFocusHistory.push(searchWindow.webContents.id);
-        newFocusHistory.push(writeWindow.webContents.id);
-      })();
+      // Get newFocusHistory using maps
+      rawNewFocusHistory = openModeMemory.focusHistory.map(
+        (oldWcId) => oldWcToNewWcMap[oldWcId] || null
+      );
+    } else {
+      // When no memory, we open search and write windows only
+      const searchWindowPromise = this.windowManager.openSearchWindow();
+      const writeWindowPromise = this.windowManager.openWriteWindow();
+
+      const parallelRes = {
+        searchWindow: await searchWindowPromise,
+        writeWindow: await writeWindowPromise,
+      };
+
+      const newIds = [
+        parallelRes.searchWindow.webContents.id,
+        parallelRes.writeWindow.webContents.id,
+      ];
+      searchWindowWc = newIds[0];
+      lastFocusedWriteWindowWc = newIds[1];
+
+      newIds.forEach((wcId) => {
+        rawNewFocusHistory.push(wcId);
+      });
     }
 
-    this.windowManager.setFocusHistory(newFocusHistory);
+    // Handle options
+    if (options) {
+      if (options.searchAfterwards) {
+        if (!searchWindowWc) {
+          const newSearchWindow = await this.windowManager.openSearchWindow();
+          searchWindowWc = newSearchWindow.webContents.id;
+        }
+        rawNewFocusHistory.push(searchWindowWc);
+      } else if (options.writeAfterwards) {
+        if (!lastFocusedWriteWindowWc) {
+          const newWriteWindow = await this.windowManager.openWriteWindow();
+          lastFocusedWriteWindowWc = newWriteWindow.webContents.id;
+        }
+        rawNewFocusHistory.push(lastFocusedWriteWindowWc);
+      }
+    }
+
+    const finalNewFocusHistory: number[] = rawNewFocusHistory.filter(
+      (wcId) => wcId !== null
+    ) as number[];
+
+    // Remove duplicates biasing later shows for show order
+    const showOrder: number[] = [];
+    for (let i = finalNewFocusHistory.length - 1; i >= 0; i--) {
+      const wcId = finalNewFocusHistory[i];
+      if (!showOrder.includes(wcId)) {
+        showOrder.unshift(wcId);
+      }
+    }
+
+    await new Promise((resolve) =>
+      setTimeout(async () => {
+        await Promise.all(
+          showOrder.map(async (wcId) => {
+            this.windowManager.showWindowByWc(wcId);
+          })
+        );
+        resolve(true);
+      }, SHOW_DELAY)
+    );
+
+    // Set focus history after all the shows to override focus history
+    this.windowManager.setFocusHistory(finalNewFocusHistory);
   }
 
   async switchToOpenModeThenWrite() {
-    await this.switchToOpenMode();
-    this.windowManager.focusOrCreateLastFocusedWriteWindow();
+    await this.switchToOpenMode({ writeAfterwards: true });
   }
 
   async switchToOpenModeThenSearch() {
-    await this.switchToOpenMode();
-    this.windowManager.focusOrCreateSearchWindow();
+    await this.switchToOpenMode({ searchAfterwards: true });
   }
 
   // Called before any other logic in switch functions
@@ -140,5 +221,13 @@ export default class ModeManager extends BaseManager {
 
     // Close windows
     this.windowManager.closeAllWindows();
+  }
+
+  /**
+   * SECTION: Ensure mode functions which sets app modes without calling other switching functionality.
+   * These functions are DANGEROUS so use them sparingly
+   */
+  ensureOpenMode() {
+    this.appMode = AppMode.OPEN;
   }
 }

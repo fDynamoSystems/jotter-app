@@ -12,6 +12,7 @@ import {
   OpenWriteWindowSettings,
   WindowType,
 } from "./types";
+import { SHOW_DELAY } from "@main/common/constants";
 
 /*
 WINDOW MANAGER handles most window operations, e.g opening, closing, and tracking windows.
@@ -48,17 +49,24 @@ export default class WindowManager extends BaseManager {
   }
 
   async openSearchWindow(openSettings?: OpenSearchWindowSettings) {
-    return await createSearchWindow(
+    const window = await createSearchWindow(
       (createdWindow) =>
         this._onSearchWindowCreate(createdWindow, openSettings?.query),
       openSettings?.createSettings
     );
+
+    if (openSettings?.immediatelyShow) {
+      setTimeout(() => {
+        this.showWindowByWc(window.webContents.id);
+      }, SHOW_DELAY);
+    }
+    return window;
   }
 
   async openWriteWindow(openSettings?: OpenWriteWindowSettings) {
     const prevWindow = this.getLastFocusedWriteWindow();
 
-    const newWindow = await createWriteWindow((createdWindow) => {
+    const window = await createWriteWindow((createdWindow) => {
       this._onWriteWindowCreate(
         createdWindow,
         openSettings?.noteEditInfo || null,
@@ -66,7 +74,13 @@ export default class WindowManager extends BaseManager {
       );
     }, openSettings?.createSettings);
 
-    return newWindow;
+    if (openSettings?.immediatelyShow) {
+      setTimeout(() => {
+        this.showWindowByWc(window.webContents.id);
+      }, SHOW_DELAY);
+    }
+
+    return window;
   }
 
   /*
@@ -100,8 +114,7 @@ export default class WindowManager extends BaseManager {
       this.wcToWindowSizeMap[wcId] = createdWindow.getSize();
     });
 
-    createdWindow.show();
-    createdWindow.focus();
+    this.modeManager.ensureOpenMode();
   };
 
   _onCommonWindowClose = (createdWindow: BrowserWindow) => {
@@ -220,6 +233,11 @@ export default class WindowManager extends BaseManager {
 
     createdWindow.on("close", () => {
       this._onCommonWindowClose(createdWindow);
+      if (this.getLastFocusedWriteWindow()) {
+        this.focusLastFocusedWriteWindow();
+      } else {
+        this.focusLastFocusedWindow();
+      }
     });
 
     if (noteEditInfo) {
@@ -317,6 +335,10 @@ export default class WindowManager extends BaseManager {
       return null;
     }
     return this.wcToBrowserWindowMap[existingWcId] || null;
+  }
+
+  getWindowByWc(wcId: number) {
+    return this.wcToBrowserWindowMap[wcId] || null;
   }
 
   /*
@@ -418,7 +440,7 @@ export default class WindowManager extends BaseManager {
   focusOrCreateSearchWindow() {
     const currWindow = this.getSearchWindow();
     if (currWindow) currWindow.focus();
-    else this.openSearchWindow();
+    else this.openSearchWindow({ immediatelyShow: true });
   }
 
   focusWriteWindow(wcId: number) {
@@ -433,11 +455,18 @@ export default class WindowManager extends BaseManager {
   focusOrCreateLastFocusedWriteWindow() {
     const currWindow = this.getLastFocusedWriteWindow();
     if (currWindow) currWindow.focus();
-    else this.openWriteWindow();
+    else this.openWriteWindow({ immediatelyShow: true });
   }
 
   focusLastFocusedWindow() {
     this.getLastFocusedWindow()?.focus();
+  }
+
+  /**
+   * SECTION: Show windows
+   */
+  showWindowByWc(wcId: number) {
+    this.getWindowByWc(wcId)?.show();
   }
 
   /*
@@ -448,7 +477,7 @@ export default class WindowManager extends BaseManager {
       const lastFocused = this.getLastFocusedWriteWindow();
       if (lastFocused) this.resetWriteWindowContents(lastFocused);
       else {
-        this.openWriteWindow();
+        this.openWriteWindow({ immediatelyShow: true });
       }
     }
   }

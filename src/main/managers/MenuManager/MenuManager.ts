@@ -67,7 +67,7 @@ export default class MenuManager extends BaseManager {
           label: "New note window",
           accelerator: KeyboardShortcuts.NEW_NOTE_WINDOW,
           click: () => {
-            this.windowManager.openWriteWindow();
+            this.windowManager.openWriteWindow({ immediatelyShow: true });
           },
         },
         { type: "separator" },

@@ -116,7 +116,8 @@ async function registerGlobalKeyboardShortcuts() {
   }
 
   globalShortcut.register(openEntryShortcut, async () => {
-    modeManager.switchToOpenModeThenWrite();
+    if (modeManager.isAppInCloseMode()) modeManager.switchToOpenModeThenWrite();
+    else windowManager.focusOrCreateLastFocusedWriteWindow();
   });
 
   // Register search entry shortcut
@@ -132,7 +133,9 @@ async function registerGlobalKeyboardShortcuts() {
   }
 
   globalShortcut.register(searchEntryShortcut, async () => {
-    modeManager.switchToOpenModeThenSearch();
+    if (modeManager.isAppInCloseMode())
+      modeManager.switchToOpenModeThenSearch();
+    else windowManager.focusOrCreateSearchWindow();
   });
 }
 

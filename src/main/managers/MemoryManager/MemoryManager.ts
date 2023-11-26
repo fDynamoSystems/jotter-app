@@ -11,15 +11,18 @@ type WindowDetailsInternal = {
   windowType: WindowType;
   windowVisualDetails: WindowVisualDetails;
   searcherIndex: number | null;
+  wcId: number;
 };
 type WindowDetailsExternal = {
   windowType: WindowType;
   windowVisualDetails: WindowVisualDetails;
   noteEditInfo: NoteEditInfo | null;
+  wcId: number;
 };
 
 type OpenModeMemoryInternal = {
   windowDetailsList: WindowDetailsInternal[];
+  focusHistory: number[];
 };
 
 type OpenModeMemoryExternal = Omit<
@@ -28,6 +31,7 @@ type OpenModeMemoryExternal = Omit<
 > & {
   searchQuery: string;
   windowDetailsList: WindowDetailsExternal[];
+  focusHistory: number[];
 };
 
 export default class MemoryManager extends BaseManager {
@@ -58,9 +62,15 @@ export default class MemoryManager extends BaseManager {
       wcToWindowTypeMap,
     } = currentMaps;
 
-    const focusHistory = this.windowManager.getCleanFocusHistory();
+    const cleanFocusHistory = this.windowManager.getCleanFocusHistory();
+    const fullFocusHistory = this.windowManager.getFocusHistory();
 
-    const windowDetailsList: WindowDetailsInternal[] = focusHistory.map(
+    if (!cleanFocusHistory.length) {
+      this.openModeMemory = null;
+      return null;
+    }
+
+    const windowDetailsList: WindowDetailsInternal[] = cleanFocusHistory.map(
       (wcId) => {
         const windowType = wcToWindowTypeMap[wcId];
         const searcherIndex: number | null = wcToSearcherIndexMap[wcId] || null;
@@ -68,6 +78,7 @@ export default class MemoryManager extends BaseManager {
         const [width, height] = wcToWindowSizeMap[wcId];
         const toAdd: WindowDetailsInternal = {
           windowType,
+          wcId,
           searcherIndex,
           windowVisualDetails: {
             position: { x, y },
@@ -81,6 +92,7 @@ export default class MemoryManager extends BaseManager {
 
     this.openModeMemory = {
       windowDetailsList,
+      focusHistory: fullFocusHistory,
     };
     return this.openModeMemory;
   }
@@ -102,6 +114,7 @@ export default class MemoryManager extends BaseManager {
           const toAdd: WindowDetailsExternal = {
             windowType: internalDetails.windowType,
             windowVisualDetails: internalDetails.windowVisualDetails,
+            wcId: internalDetails.wcId,
             noteEditInfo,
           };
           return toAdd;
@@ -110,6 +123,7 @@ export default class MemoryManager extends BaseManager {
       return {
         searchQuery: this.searchQuery,
         windowDetailsList,
+        focusHistory: this.openModeMemory.focusHistory,
       };
     }
     return null;
