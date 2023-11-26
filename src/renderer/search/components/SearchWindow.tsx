@@ -21,7 +21,7 @@ export default function SearchWindow() {
 
   const [selectIndex, setSelectIndex] = useState<number>(INITIAL_SELECT_INDEX); //Select search results using keyboard
 
-  const [isWindowFocused, setIsWindowFocused] = useState<boolean>(false);
+  const [isWindowFocused, setIsWindowFocused] = useState<boolean>(true);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
