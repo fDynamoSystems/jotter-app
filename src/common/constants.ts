@@ -44,10 +44,4 @@ export enum KeyboardShortcuts {
 export const BG_COLOR_DARK = "#242424";
 export const BG_COLOR_LIGHT = "#FFF";
 
-export const APP_SETTINGS = {
-  NOTES_FOLDER_PATH: "notebookFolderPath",
-  OPEN_ENTRY_SHORTCUT: "openEntryShortcut",
-  SEARCH_ENTRY_SHORTCUT: "searchEntryShortcut",
-};
-
 export const MAX_NOTE_TITLE_LENGTH = 200;

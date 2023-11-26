@@ -4,7 +4,6 @@ import FilerService from "./services/FilerService";
 import SearcherService from "./services/SearcherService";
 import { ScanAllFilesResult, scanAllNoteFiles } from "./scanAllNoteFiles";
 import settings from "electron-settings";
-import { APP_SETTINGS, KeyboardShortcuts } from "@src/common/constants";
 import WindowManager from "./managers/WindowManager";
 import TrayManager from "./managers/TrayManager";
 import AutoLaunch from "auto-launch";
@@ -106,17 +105,9 @@ async function initializeNotes(notesFolderPath: string) {
 }
 
 async function registerGlobalKeyboardShortcuts() {
-  // Register write entry shortcut
-  let openEntryShortcut = (await settings.get(
-    APP_SETTINGS.OPEN_ENTRY_SHORTCUT
-  )) as string;
-  if (!openEntryShortcut) {
-    settings.set(
-      APP_SETTINGS.OPEN_ENTRY_SHORTCUT,
-      KeyboardShortcuts.OPEN_ENTRY
-    );
-    openEntryShortcut = KeyboardShortcuts.OPEN_ENTRY;
-  }
+  // Register open entry shortcut
+  const openEntryShortcut =
+    await settingsManager.ensureOpenEntryShortcutIsInitialized();
 
   globalShortcut.register(openEntryShortcut, async () => {
     if (modeManager.isAppInCloseMode()) modeManager.switchToOpenModeThenWrite();
@@ -124,17 +115,8 @@ async function registerGlobalKeyboardShortcuts() {
   });
 
   // Register search entry shortcut
-  let searchEntryShortcut = (await settings.get(
-    APP_SETTINGS.SEARCH_ENTRY_SHORTCUT
-  )) as string;
-  if (!searchEntryShortcut) {
-    settings.set(
-      APP_SETTINGS.SEARCH_ENTRY_SHORTCUT,
-      KeyboardShortcuts.SEARCH_ENTRY
-    );
-    searchEntryShortcut = KeyboardShortcuts.SEARCH_ENTRY;
-  }
-
+  const searchEntryShortcut =
+    await settingsManager.ensureSearchEntryShortcutIsInitialized();
   globalShortcut.register(searchEntryShortcut, async () => {
     if (modeManager.isAppInCloseMode())
       modeManager.switchToOpenModeThenSearch();
@@ -154,9 +136,8 @@ app.whenReady().then(async () => {
   // Build tray
   await trayManager.initialize();
 
-  const notesFolderPath = (await settings.get(
-    APP_SETTINGS.NOTES_FOLDER_PATH
-  )) as string;
+  const notesFolderPath = await settingsManager.getNotesFolderPath();
+
   if (!notesFolderPath) {
     await windowManager.openIntroWindow();
   } else {

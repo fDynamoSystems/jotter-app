@@ -1,9 +1,8 @@
 import SearcherService from "./services/SearcherService";
 import FilerService from "./services/FilerService";
-import { APP_SETTINGS, IPC_MESSAGE } from "@src/common/constants";
+import { IPC_MESSAGE } from "@src/common/constants";
 import { BrowserWindow, Menu, app, dialog } from "electron";
 import { NoteEditInfo } from "@src/common/types";
-import settings from "electron-settings";
 import { ScanAllFilesResult, scanAllNoteFiles } from "./scanAllNoteFiles";
 import WindowManager from "./managers/WindowManager";
 import { ManagerList } from "./managers/BaseManager";
@@ -271,7 +270,7 @@ export default class IpcHandlers {
     this.searcherService.setSearcherDocs(searcherDocs);
     this.filerService.setNotesFolderPath(newPath);
 
-    await settings.set(APP_SETTINGS.NOTES_FOLDER_PATH, newPath);
+    await this.settingsManager.setNotesFolderPath(newPath);
 
     return true;
   };
@@ -285,14 +284,14 @@ export default class IpcHandlers {
     this.searcherService.setSearcherDocs(searcherDocs);
     this.filerService.setNotesFolderPath(newPath);
 
-    await settings.set(APP_SETTINGS.NOTES_FOLDER_PATH, newPath);
+    await this.settingsManager.setNotesFolderPath(newPath);
 
     this.windowManager.closeAllWriteWindows();
     this.retriggerSearch();
   };
 
-  private getNotesFolderPath = (_event: Electron.IpcMainInvokeEvent) => {
-    return settings.get(APP_SETTINGS.NOTES_FOLDER_PATH);
+  private getNotesFolderPath = async (_event: Electron.IpcMainInvokeEvent) => {
+    return await this.settingsManager.getNotesFolderPath();
   };
 
   private openDialogNotesFolderPath = async (
