@@ -275,6 +275,9 @@ export default class IpcHandlers {
     return true;
   };
 
+  /**
+   * setNotesFolderPath is called by setting window in settings mode
+   */
   private setNotesFolderPath = async (
     _event: Electron.IpcMainInvokeEvent,
     newPath: string
@@ -286,8 +289,8 @@ export default class IpcHandlers {
 
     await this.settingsManager.setNotesFolderPath(newPath);
 
-    this.windowManager.closeAllWriteWindows();
-    this.retriggerSearch();
+    this.memoryManager.flushOpenModeMemory();
+    this.modeManager.switchToOpenMode();
   };
 
   private getNotesFolderPath = async (_event: Electron.IpcMainInvokeEvent) => {

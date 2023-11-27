@@ -195,7 +195,13 @@ export default class ModeManager extends BaseManager {
     const shouldContinue = this._onModeSwitch(AppMode.SETTINGS);
     if (!shouldContinue) return;
 
-    await this.windowManager.openSettingsWindow({ immediatelyShow: true });
+    // Get position based on tray
+    const trayBounds = this.trayManager.getTrayBounds();
+    const { x, y } = trayBounds;
+    await this.windowManager.openSettingsWindow({
+      immediatelyShow: true,
+      createSettings: { position: { x, y } },
+    });
   }
 
   // Called before any other logic in switch functions, returns boolean that denotes if logic should continue
