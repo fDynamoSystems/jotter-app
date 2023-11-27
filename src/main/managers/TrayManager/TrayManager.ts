@@ -27,7 +27,7 @@ export default class TrayManager extends BaseManager {
       new MenuItem({
         label: "Write",
         click: () => {
-          this.modeManager.switchToOpenModeThenWrite();
+          this.modeManager.switchToOpenMode({ writeAfterwards: true });
         },
       })
     );
@@ -35,7 +35,7 @@ export default class TrayManager extends BaseManager {
       new MenuItem({
         label: "New note",
         click: () => {
-          this.modeManager.switchToOpenModeThenWrite();
+          this.modeManager.switchToOpenMode({ newNoteAfterwards: true });
         },
       })
     );
@@ -44,7 +44,7 @@ export default class TrayManager extends BaseManager {
       new MenuItem({
         label: "Search notes",
         click: () => {
-          this.modeManager.switchToOpenModeThenSearch();
+          this.modeManager.switchToOpenMode({ searchAfterwards: true });
         },
       })
     );

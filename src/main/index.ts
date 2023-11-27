@@ -110,7 +110,8 @@ async function registerGlobalKeyboardShortcuts() {
     await settingsManager.ensureOpenEntryShortcutIsInitialized();
 
   globalShortcut.register(openEntryShortcut, async () => {
-    if (!modeManager.isAppInOpenMode()) modeManager.switchToOpenModeThenWrite();
+    if (!modeManager.isAppInOpenMode())
+      modeManager.switchToOpenMode({ writeAfterwards: true });
     else windowManager.focusOrCreateLastFocusedWriteWindow();
   });
 
@@ -119,7 +120,7 @@ async function registerGlobalKeyboardShortcuts() {
     await settingsManager.ensureSearchEntryShortcutIsInitialized();
   globalShortcut.register(searchEntryShortcut, async () => {
     if (!modeManager.isAppInOpenMode())
-      modeManager.switchToOpenModeThenSearch();
+      modeManager.switchToOpenMode({ searchAfterwards: true });
     else windowManager.focusOrCreateSearchWindow();
   });
 }

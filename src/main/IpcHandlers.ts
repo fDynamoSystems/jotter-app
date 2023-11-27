@@ -165,6 +165,18 @@ export default class IpcHandlers {
     return toReturn;
   };
 
+  /**
+   * deleteNote is never called directly from renderer, maybe indirectly from an empty edit.
+   * When that happens, the wcId gets disassociated but we don't need to close the window or
+   * reset it since we can assume the window will be empty.
+   *
+   * If we want to implement some deleteNote feature straight from write window, will need
+   * to keep the above in mind.
+   *
+   * @param mainEvent
+   * @param noteEditInfo
+   * @returns
+   */
   private deleteNote = (
     mainEvent: Electron.IpcMainInvokeEvent,
     noteEditInfo: NoteEditInfo

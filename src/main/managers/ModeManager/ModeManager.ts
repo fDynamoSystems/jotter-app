@@ -19,6 +19,7 @@ export enum AppMode {
 export type SwitchToOpenModeOptions = {
   searchAfterwards?: boolean;
   writeAfterwards?: boolean;
+  newNoteAfterwards?: boolean;
 };
 export default class ModeManager extends BaseManager {
   private appMode: AppMode = AppMode.CLOSED;
@@ -152,6 +153,17 @@ export default class ModeManager extends BaseManager {
           lastFocusedWriteWindowWc = newWriteWindow.webContents.id;
         }
         rawNewFocusHistory.push(lastFocusedWriteWindowWc);
+      } else if (options.newNoteAfterwards) {
+        if (!lastFocusedWriteWindowWc) {
+          const newWriteWindow = await this.windowManager.openWriteWindow();
+          lastFocusedWriteWindowWc = newWriteWindow.webContents.id;
+        } else {
+          const window = this.windowManager.getWindowByWc(
+            lastFocusedWriteWindowWc
+          );
+          this.windowManager.resetWriteWindowContents(window);
+        }
+        rawNewFocusHistory.push(lastFocusedWriteWindowWc);
       }
     }
 
@@ -181,14 +193,6 @@ export default class ModeManager extends BaseManager {
 
     // Set focus history after all the shows to override focus history
     this.windowManager.setFocusHistory(finalNewFocusHistory);
-  }
-
-  async switchToOpenModeThenWrite() {
-    await this.switchToOpenMode({ writeAfterwards: true });
-  }
-
-  async switchToOpenModeThenSearch() {
-    await this.switchToOpenMode({ searchAfterwards: true });
   }
 
   async switchToSettingsMode() {
