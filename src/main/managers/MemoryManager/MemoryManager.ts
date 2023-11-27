@@ -128,4 +128,8 @@ export default class MemoryManager extends BaseManager {
     }
     return null;
   }
+
+  flushOpenModeMemory() {
+    this.openModeMemory = null;
+  }
 }
