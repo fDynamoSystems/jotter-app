@@ -11,7 +11,7 @@
   flex-direction: column;
   padding: 8px;
   padding-top: 0;
-  padding-bottom: 0;
+  padding-bottom: 8px;
   height: 100%;
 }
 
@@ -25,9 +25,13 @@
 .settingInput {
   width: 100%;
   background-color: var(--color-accent);
-  border: 1px solid var(--color-accent-2);
+  border: 3px solid transparent;
   border-radius: 4px;
   padding: 0.5rem;
   cursor: pointer;
   overflow: hidden;
+}
+
+.saveButton {
+  margin-top: auto;
 }

@@ -72,6 +72,7 @@ export default function SettingsWindow() {
         <StyledButton
           disabled={notesFolderPath === initialNotesFolderPath}
           onClick={handleSave}
+          className={styles.saveButton}
         >
           Save
         </StyledButton>
