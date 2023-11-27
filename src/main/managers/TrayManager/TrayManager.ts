@@ -7,6 +7,7 @@ TRAY MANAGER deals with the application tray and its menu
 */
 export default class TrayManager extends BaseManager {
   private quitApp: () => void;
+  private tray!: Tray;
 
   constructor(quitApp: () => void) {
     super();
@@ -24,12 +25,21 @@ export default class TrayManager extends BaseManager {
     const menu = new Menu();
     menu.append(
       new MenuItem({
+        label: "Write",
+        click: () => {
+          this.modeManager.switchToOpenModeThenWrite();
+        },
+      })
+    );
+    menu.append(
+      new MenuItem({
         label: "New note",
         click: () => {
           this.modeManager.switchToOpenModeThenWrite();
         },
       })
     );
+    menu.append(new MenuItem({ type: "separator" }));
     menu.append(
       new MenuItem({
         label: "Search notes",
@@ -41,7 +51,7 @@ export default class TrayManager extends BaseManager {
     menu.append(new MenuItem({ type: "separator" }));
     menu.append(
       new MenuItem({
-        label: "Open settings",
+        label: "Settings",
         click: () => {
           this.modeManager.switchToSettingsMode();
         },
@@ -80,6 +90,11 @@ export default class TrayManager extends BaseManager {
       tray.popUpContextMenu(menu);
     });
 
+    this.tray = tray;
     return tray;
+  }
+
+  getTrayBounds() {
+    return this.tray.getBounds();
   }
 }
