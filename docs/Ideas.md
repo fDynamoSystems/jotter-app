@@ -54,3 +54,4 @@
 - Make testing intro CX easier
 - More tests in general
 - Automate publishing downloadable packages
+- Allow for both local jotter instance and dev jotter instance to run, maybe with different shortcuts for entry?

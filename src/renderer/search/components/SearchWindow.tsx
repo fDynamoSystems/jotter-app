@@ -28,6 +28,7 @@ export default function SearchWindow() {
   useEffect(() => {
     window.commonElectronAPI.onWindowFocusChange((_event, nowFocus) => {
       setIsWindowFocused(nowFocus);
+      if (nowFocus) searchInputRef.current?.focus();
     });
 
     window.searchElectronAPI.onRetriggerRequest((_event) => {
@@ -37,11 +38,6 @@ export default function SearchWindow() {
     window.searchElectronAPI.onSetQuery((_event, query) => {
       setQueryVal(query);
     });
-
-    // Added to remove visual bug of search input being focused on launch
-    setTimeout(() => {
-      searchInputRef.current?.blur();
-    }, 500);
   }, []);
 
   useEffect(() => {

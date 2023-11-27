@@ -31,7 +31,6 @@ export default function WriteWindow() {
         textAreaRef.current?.focus();
       }
     });
-    textAreaRef.current?.focus();
   }, []);
 
   useEffect(() => {
