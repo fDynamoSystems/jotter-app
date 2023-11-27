@@ -59,11 +59,13 @@ export default function WriteWindow() {
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const newVal = e.target.value;
+
     setWriteVal(newVal);
     setTextData({ caret: -1, target: e.target });
-
     // Don't save if new note and only whitespace
-    if (!noteEditInfo && !newVal.trim().length) {
+    // Kinda hacky, what if we just call delete here instead of
+    // Having IPCHandler logic delete through edit?
+    if (!noteEditInfo && !newVal.length) {
       return;
     }
 
@@ -83,6 +85,8 @@ export default function WriteWindow() {
     shouldUpdateCurrentNote: boolean = true
   ) {
     let newNoteEditInfo: NoteEditInfo | null = null;
+    writeVal = writeVal.trim(); // Trim to prevent whitespace
+
     if (!noteEditInfo) {
       if (!writeVal) return;
       newNoteEditInfo = await window.writeElectronAPI.createNote(writeVal);
