@@ -9,7 +9,7 @@ import {
   INITIAL_ON_TOP_LEVEL,
   INITIAL_ON_TOP_RELATIVE_LEVEL,
 } from "./constants";
-import { getActiveScreenBounds } from "./helpers";
+import { applyCreateWindowSettings, getActiveScreenBounds } from "./helpers";
 import { WindowCreateSettings } from "./types";
 import { WRITE_WINDOW_CONSTANTS } from "./createWriteWindow";
 
@@ -76,25 +76,11 @@ export async function createSearchWindow(
   let constructorOptions =
     process.env.NODE_ENV !== "production" ? devOptions : prodOptions;
 
-  if (createSettings) {
-    const convertedSettings: {
-      x?: number;
-      y?: number;
-      width?: number;
-      height?: number;
-    } = {};
-    if (createSettings.position) {
-      (convertedSettings.x = createSettings.position.x),
-        (convertedSettings.y = createSettings.position.y);
-    }
-
-    if (createSettings.size) {
-      (convertedSettings.width = createSettings.size.width),
-        (convertedSettings.height = createSettings.size.height);
-    }
-
-    constructorOptions = { ...constructorOptions, ...convertedSettings };
-  }
+  if (createSettings)
+    constructorOptions = applyCreateWindowSettings(
+      createSettings,
+      constructorOptions
+    );
 
   // Create the search window
   const searchWindow = new BrowserWindow(constructorOptions);

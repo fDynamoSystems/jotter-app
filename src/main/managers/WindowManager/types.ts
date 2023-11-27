@@ -9,17 +9,19 @@ export enum WindowType {
   Write,
 }
 
-export type OpenWriteWindowSettings = {
-  noteEditInfo?: NoteEditInfo;
+type CommonWindowSettings = {
   createSettings?: WindowCreateSettings;
   immediatelyShow?: boolean;
 };
+export type OpenWriteWindowSettings = {
+  noteEditInfo?: NoteEditInfo;
+} & CommonWindowSettings;
 
 export type OpenSearchWindowSettings = {
   query?: string;
-  createSettings?: WindowCreateSettings;
-  immediatelyShow?: boolean;
-};
+} & CommonWindowSettings;
+
+export type OpenSettingsWindowSettings = CommonWindowSettings;
 
 export type WindowVisualDetails = {
   position: Coordinates;

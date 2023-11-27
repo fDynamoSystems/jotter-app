@@ -9,7 +9,7 @@ import {
   INITIAL_ON_TOP_LEVEL,
   INITIAL_ON_TOP_RELATIVE_LEVEL,
 } from "./constants";
-import { getActiveScreenBounds } from "./helpers";
+import { applyCreateWindowSettings, getActiveScreenBounds } from "./helpers";
 import { WindowCreateSettings } from "./types";
 
 export const WRITE_WINDOW_CONSTANTS = {
@@ -70,25 +70,11 @@ export async function createWriteWindow(
   let constructorOptions =
     process.env.NODE_ENV !== "production" ? devOptions : prodOptions;
 
-  if (createSettings) {
-    const convertedSettings: {
-      x?: number;
-      y?: number;
-      width?: number;
-      height?: number;
-    } = {};
-    if (createSettings.position) {
-      (convertedSettings.x = createSettings.position.x),
-        (convertedSettings.y = createSettings.position.y);
-    }
-
-    if (createSettings.size) {
-      (convertedSettings.width = createSettings.size.width),
-        (convertedSettings.height = createSettings.size.height);
-    }
-
-    constructorOptions = { ...constructorOptions, ...convertedSettings };
-  }
+  if (createSettings)
+    constructorOptions = applyCreateWindowSettings(
+      createSettings,
+      constructorOptions
+    );
 
   // Create the write window
   const writeWindow = new BrowserWindow(constructorOptions);

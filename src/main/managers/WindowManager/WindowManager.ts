@@ -9,6 +9,7 @@ import BaseManager from "../BaseManager";
 import { MenuName } from "../MenuManager/MenuManager";
 import {
   OpenSearchWindowSettings,
+  OpenSettingsWindowSettings,
   OpenWriteWindowSettings,
   WindowType,
 } from "./types";
@@ -44,8 +45,18 @@ export default class WindowManager extends BaseManager {
     return await createIntroWindow(this._onIntroWindowCreate);
   }
 
-  async openSettingsWindow() {
-    return await createSettingsWindow(this._onSettingsWindowCreate);
+  async openSettingsWindow(openSettings?: OpenSettingsWindowSettings) {
+    const window = await createSettingsWindow(
+      (createdWindow) => this._onSettingsWindowCreate(createdWindow),
+      openSettings?.createSettings
+    );
+
+    if (openSettings?.immediatelyShow) {
+      setTimeout(() => {
+        this.showWindowByWc(window.webContents.id);
+      }, SHOW_DELAY);
+    }
+    return window;
   }
 
   async openSearchWindow(openSettings?: OpenSearchWindowSettings) {
@@ -113,8 +124,6 @@ export default class WindowManager extends BaseManager {
       this.wcToWindowPositionMap[wcId] = createdWindow.getPosition();
       this.wcToWindowSizeMap[wcId] = createdWindow.getSize();
     });
-
-    this.modeManager.ensureOpenMode();
   };
 
   _onCommonWindowClose = (createdWindow: BrowserWindow) => {
@@ -213,6 +222,7 @@ export default class WindowManager extends BaseManager {
     }
 
     this._onCommonWindowCreate(createdWindow, WindowType.Search);
+    this.modeManager.ensureOpenMode();
   };
 
   _onWriteWindowCreate = (
@@ -262,6 +272,7 @@ export default class WindowManager extends BaseManager {
     }
 
     this._onCommonWindowCreate(createdWindow, WindowType.Write);
+    this.modeManager.ensureOpenMode();
   };
 
   /*

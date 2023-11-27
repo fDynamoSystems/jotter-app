@@ -43,7 +43,7 @@ export default class TrayManager extends BaseManager {
       new MenuItem({
         label: "Open settings",
         click: () => {
-          console.warn("TO IMPLEMENT open settings");
+          this.modeManager.switchToSettingsMode();
         },
       })
     );
@@ -75,7 +75,7 @@ export default class TrayManager extends BaseManager {
     });
 
     tray.on("right-click", () => {
-      if (this.modeManager.isAppInOpenMode())
+      if (!this.modeManager.isAppInCloseMode())
         this.modeManager.switchToClosedMode();
       tray.popUpContextMenu(menu);
     });

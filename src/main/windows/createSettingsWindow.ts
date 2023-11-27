@@ -9,7 +9,8 @@ import {
   INITIAL_ON_TOP_LEVEL,
   INITIAL_ON_TOP_RELATIVE_LEVEL,
 } from "./constants";
-import { getActiveScreenBounds } from "./helpers";
+import { applyCreateWindowSettings, getActiveScreenBounds } from "./helpers";
+import { WindowCreateSettings } from "./types";
 
 const WINDOW_WIDTH = 460;
 const WINDOW_HEIGHT = 320;
@@ -45,7 +46,8 @@ const getSettingsWindowInitConfig = (): BrowserWindowConstructorOptions => {
 };
 
 export async function createSettingsWindow(
-  cb?: (createdWindow: BrowserWindow) => void
+  cb?: (createdWindow: BrowserWindow) => void,
+  createSettings?: WindowCreateSettings
 ) {
   const prodOptions = getSettingsWindowInitConfig();
   const devOptions: BrowserWindowConstructorOptions = {
@@ -56,8 +58,14 @@ export async function createSettingsWindow(
     },
   };
 
-  const constructorOptions =
+  let constructorOptions =
     process.env.NODE_ENV !== "production" ? devOptions : prodOptions;
+
+  if (createSettings)
+    constructorOptions = applyCreateWindowSettings(
+      createSettings,
+      constructorOptions
+    );
 
   // Create the settings window
   const settingsWindow = new BrowserWindow(constructorOptions);

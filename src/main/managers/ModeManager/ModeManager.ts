@@ -13,6 +13,7 @@ A mode is a configuration of windows. This idea was created when writing and edi
 export enum AppMode {
   CLOSED,
   OPEN,
+  SETTINGS,
 }
 
 export type SwitchToOpenModeOptions = {
@@ -42,22 +43,21 @@ export default class ModeManager extends BaseManager {
     return this.appMode === AppMode.OPEN;
   }
 
+  isAppInSettingsMode() {
+    return this.appMode === AppMode.SETTINGS;
+  }
+
   /*
   Mode switching functions
   */
   switchToClosedMode() {
     const shouldContinue = this._onModeSwitch(AppMode.CLOSED);
     if (!shouldContinue) return;
-
-    this.appMode = AppMode.CLOSED;
   }
 
   async switchToOpenMode(options?: SwitchToOpenModeOptions) {
     const shouldContinue = this._onModeSwitch(AppMode.OPEN);
     if (!shouldContinue) return;
-
-    if (this.appMode === AppMode.OPEN) return;
-    this.appMode = AppMode.OPEN;
 
     // Call memory load
     const openModeMemory = this.memoryManager.loadOpenModeFromMemory();
@@ -191,9 +191,17 @@ export default class ModeManager extends BaseManager {
     await this.switchToOpenMode({ searchAfterwards: true });
   }
 
-  // Called before any other logic in switch functions
+  async switchToSettingsMode() {
+    const shouldContinue = this._onModeSwitch(AppMode.SETTINGS);
+    if (!shouldContinue) return;
+
+    await this.windowManager.openSettingsWindow({ immediatelyShow: true });
+  }
+
+  // Called before any other logic in switch functions, returns boolean that denotes if logic should continue
   _onModeSwitch(newMode: AppMode) {
     if (this.isSwitching) return false;
+    let shouldContinue = true;
     this.isSwitching = true;
 
     const oldMode = this.appMode;
@@ -202,24 +210,32 @@ export default class ModeManager extends BaseManager {
     if (oldMode === AppMode.OPEN) {
       if (!isSameMode) {
         this._openModeCleanup();
+      } else {
+        shouldContinue = false;
+      }
+    } else if (oldMode === AppMode.SETTINGS) {
+      if (!isSameMode) {
+        this._closeWindowsCleanup();
+      } else {
+        shouldContinue = false;
       }
     }
     this.isSwitching = false;
-    return true;
+    this.appMode = newMode;
+    return shouldContinue;
   }
 
   /**
    * SECTION: Clean up functions are called when the app leaves a certain mode
    *
-   * OPPORTUNITIES:
-   * - Instead of individual closing functions, use closeAllWindows instead
    */
 
   _openModeCleanup() {
-    // Save to memory
     this.memoryManager.saveOpenModeToMemory();
+    this.windowManager.closeAllWindows();
+  }
 
-    // Close windows
+  _closeWindowsCleanup() {
     this.windowManager.closeAllWindows();
   }
 
