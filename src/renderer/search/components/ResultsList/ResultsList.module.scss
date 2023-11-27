@@ -45,7 +45,7 @@
 .chunkParagraph {
   padding: 4px;
   &:not(:first-child) {
-    border-top: 1px solid var(--color-accent-2);
+    border-top: 3px solid var(--color-background);
   }
 }
 

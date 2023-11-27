@@ -14,6 +14,7 @@
   - Can be how we determine which folder to save to if we add that in
 - Hide or minimize search window
 - Multi display compatibility
+- Search / cmd + f in write window
 
 ## Search experience
 
