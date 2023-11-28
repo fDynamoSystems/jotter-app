@@ -7,6 +7,7 @@ import { ResultDisplay } from "../types";
 import { processQueryResults } from "../helpers";
 import { NoteEditInfo } from "@src/common/types";
 import { QueryResultItem } from "@main/services/SearcherService";
+import ToolBar from "./ToolBar";
 
 const INITIAL_SELECT_INDEX = -1;
 export default function SearchWindow() {
@@ -215,10 +216,12 @@ export default function SearchWindow() {
             placeholder="Search..."
           />
         </div>
+        <ToolBar className={styles.toolBar} />
         <ResultsList
           items={resultDisplays}
           selectIndex={selectIndex}
           isWindowFocused={isWindowFocused}
+          className={styles.resultsList}
         />
       </div>
     </div>

@@ -30,9 +30,16 @@
 
   padding-left: 8px;
   width: calc(100% - 14px);
-  margin-bottom: 4px;
 
   &:focus {
     border-color: var(--color-primary);
   }
+}
+
+.toolBar {
+  margin-top: 4px;
+}
+
+.resultsList {
+  margin-top: 4px;
 }
