@@ -5,6 +5,8 @@ import {
   OpenWriteWindowSettings,
   WindowType,
 } from "../WindowManager/types";
+import SearcherService from "@main/services/SearcherService";
+import { NoteEditInfo } from "@src/common/types";
 
 /*
 MODE MANAGER deals with the app's modes and works with other managers to show what is needed when modes change.
@@ -26,9 +28,11 @@ export default class ModeManager extends BaseManager {
   private appMode: AppMode = AppMode.CLOSED;
   private modeHistory: AppMode[] = []; // Contains history of appModes up until current appMode (exclusive)
   private isSwitching: boolean = false;
+  private searcherService: SearcherService;
 
-  constructor() {
+  constructor(searcherService: SearcherService) {
     super();
+    this.searcherService = searcherService;
   }
 
   /*
@@ -120,9 +124,19 @@ export default class ModeManager extends BaseManager {
         (oldWcId) => oldWcToNewWcMap[oldWcId] || null
       );
     } else {
+      // Send most recent note to write window
+      let noteEditInfo: NoteEditInfo | undefined = undefined;
+      const mostRecentNote = this.searcherService.getMostRecentNote();
+      if (mostRecentNote) {
+        noteEditInfo =
+          SearcherService.convertSearcherDocToNoteEditInfo(mostRecentNote);
+      }
+
       // When no memory, we open search and write windows only
       const searchWindowPromise = this.windowManager.openSearchWindow();
-      const writeWindowPromise = this.windowManager.openWriteWindow();
+      const writeWindowPromise = this.windowManager.openWriteWindow({
+        noteEditInfo: noteEditInfo,
+      });
 
       const parallelRes = {
         searchWindow: await searchWindowPromise,

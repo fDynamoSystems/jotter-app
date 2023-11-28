@@ -50,6 +50,11 @@
 
 - Make ModeManager more object oriented, separate different modes into classes with callable functions?
 
+## Memory additions
+
+- Keep track of select index in search
+- Keep track of scroll and cursor position in write
+
 ## Dev
 
 - Add jest runner groups

@@ -111,6 +111,13 @@ export default class SearcherService {
     });
   }
 
+  getMostRecentNote(): SearcherDoc | null {
+    if (!this.recentNotesIndex.length) return null;
+    const searcherIndex = this.recentNotesIndex[0].searcherIndex;
+    const searcherDoc = this.searcherDocs[searcherIndex];
+    return searcherDoc;
+  }
+
   getNote(searcherIndex: number): SearcherDoc | null {
     const rawNote = this.fuseObj.getDoc(searcherIndex);
     return rawNote || null;

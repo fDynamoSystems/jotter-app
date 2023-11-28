@@ -45,7 +45,7 @@ const filerService: FilerService = new FilerService();
 const windowManager: WindowManager = new WindowManager();
 const trayManager: TrayManager = new TrayManager(quitApp);
 const menuManager: MenuManager = new MenuManager();
-const modeManager: ModeManager = new ModeManager();
+const modeManager: ModeManager = new ModeManager(searcherService);
 const electronKeyboardManager: ElectronKeyboardManager =
   new ElectronKeyboardManager();
 const memoryManager: MemoryManager = new MemoryManager(searcherService);
