@@ -8,6 +8,7 @@ import { processQueryResults } from "../helpers";
 import { NoteEditInfo } from "@src/common/types";
 import { QueryResultItem } from "@main/services/SearcherService";
 import ToolBar from "./ToolBar";
+import SearchInput from "./SearchInput";
 
 const INITIAL_SELECT_INDEX = -1;
 export default function SearchWindow() {
@@ -194,10 +195,6 @@ export default function SearchWindow() {
     });
   }
 
-  function handleSearchChange(newVal: string) {
-    setQueryVal(newVal);
-  }
-
   function handleClose() {
     window.commonElectronAPI.closeCurrentWindow();
   }
@@ -206,16 +203,14 @@ export default function SearchWindow() {
     <div className={styles.bgContainer}>
       <div className={styles.container}>
         <WindowTitle windowTitle="🔎 Search notes" onClose={handleClose} />
-        <div className={styles.searchInputContainer}>
-          <input
-            type="text"
-            className={styles.searchInput}
-            value={queryVal}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            ref={searchInputRef}
-            placeholder="Search..."
-          />
-        </div>
+        <SearchInput
+          className={styles.searchInput}
+          inputRef={searchInputRef}
+          placeholder="Search here..."
+          queryVal={queryVal}
+          onQueryChange={(e) => setQueryVal(e.target.value)}
+          onClear={() => setQueryVal("")}
+        />
         <ToolBar className={styles.toolBar} />
         <ResultsList
           items={resultDisplays}

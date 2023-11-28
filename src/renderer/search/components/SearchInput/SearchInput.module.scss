@@ -1,0 +1,47 @@
+.container {
+  flex-shrink: 0;
+
+  background-color: var(--color-accent);
+  border: 3px solid transparent;
+  border-radius: 12px;
+  width: calc(100% - 14px);
+  display: grid;
+  grid-template-columns: auto 24px;
+  height: 36px;
+
+  &:focus-within {
+    border-color: var(--color-primary);
+  }
+}
+
+.searchInput {
+  resize: none;
+  padding: 4px 10px;
+  padding-left: 8px;
+  background: none;
+  border: none;
+}
+
+.buttonClear {
+  width: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  outline: none;
+
+  .iconClear:after {
+    display: inline-block;
+    content: "\00d7"; /* This will render the 'X' */
+    color: var(--color-accent-2);
+    font-size: 18px;
+    font-weight: thin;
+  }
+
+  &:hover .iconClear:after {
+    color: var(--color-primary--active);
+  }
+}
+
+.hideButtonClear {
+  display: none;
+}
