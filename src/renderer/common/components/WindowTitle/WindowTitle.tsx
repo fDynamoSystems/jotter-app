@@ -1,6 +1,5 @@
 import React from "react";
 import styles from "./WindowTitle.module.scss";
-import Close from "@mui/icons-material/Close";
 
 type WindowTitleProps = {
   windowTitle: string;
@@ -14,7 +13,7 @@ export default function WindowTitle(props: WindowTitleProps) {
       <div className={styles.rightContainer}>
         {!!props.onClose && (
           <button className={styles.buttonClose} onClick={props.onClose}>
-            <Close className={styles.iconClose} />
+            <div className={styles.iconClose}></div>
           </button>
         )}
       </div>

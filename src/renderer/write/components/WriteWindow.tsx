@@ -1,24 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
 import styles from "./WriteWindow.module.scss";
 import "@renderer/common/styles/global.scss";
-import { COMMAND_PREFIXES, SAVE_CHANGES_DELAY } from "../constants";
-import NoteTakingForm from "@renderer/write/components/NoteTakingForm";
+import { SAVE_CHANGES_DELAY } from "../constants";
 import WindowTitle from "@renderer/common/components/WindowTitle";
-import { NoteEditInfo } from "@renderer/common/types";
-import type { Editor } from "codemirror";
-import { KeyboardShortcuts } from "@src/common/constants";
-import { getNoteTitleFromContent } from "@src/common/helpers";
+import { NoteEditInfo } from "@src/common/types";
 
-const DEFAULT_WINDOW_NAME = "✏️ Jotter";
+const TAB_CHARACTER = "\t";
 export default function WriteWindow() {
   const [writeVal, setWriteVal] = useState<string>("");
-  const noteEditInfoRef = useRef<NoteEditInfo | null>(null);
-  function setNoteEditInfo(newVal: NoteEditInfo | null) {
-    noteEditInfoRef.current = newVal;
-  }
+  const [textData, setTextData] = useState<{
+    caret: number;
+    target: (EventTarget & HTMLTextAreaElement) | null;
+  }>({ caret: -1, target: null }); // Store states for manipulations;
 
-  const [noteTakingFormInstance, setNoteTakingFormInstance] =
-    useState<Editor | null>(null);
+  const [noteEditInfo, setNoteEditInfo] = useState<NoteEditInfo | null>(null);
+
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
   const saveChangesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -28,13 +26,27 @@ export default function WriteWindow() {
       setNoteEditInfo(noteToEdit);
       setWriteVal(noteToEdit.content);
     });
+    window.commonElectronAPI.onWindowFocusChange((_event, newFocus) => {
+      if (newFocus) {
+        textAreaRef.current?.focus();
+      }
+    });
   }, []);
+
+  useEffect(() => {
+    if (textData.caret >= 0) {
+      textData.target?.setSelectionRange(
+        textData.caret + TAB_CHARACTER.length,
+        textData.caret + TAB_CHARACTER.length
+      );
+    }
+  }, [textData, writeVal]);
 
   useEffect(() => {
     window.writeElectronAPI.onResetWriteWindowRequest(() => {
       if (saveChangesTimerRef.current) {
         clearTimeout(saveChangesTimerRef.current);
-        saveChanges(noteEditInfoRef.current, writeVal, false);
+        saveChanges(noteEditInfo, writeVal, false);
       }
       setNoteEditInfo(null);
       setWriteVal("");
@@ -43,40 +55,17 @@ export default function WriteWindow() {
     return () => {
       window.writeElectronAPI.removeResetWriteWindowRequestListener();
     };
-  }, [writeVal]);
+  }, [writeVal, noteEditInfo]);
 
-  useEffect(() => {
-    window.addEventListener("keydown", handleGlobalKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleGlobalKeyDown);
-    };
-  }, [handleGlobalKeyDown, noteTakingFormInstance]);
-
-  function handleGlobalKeyDown(e: KeyboardEvent) {
-    if (e.code.startsWith("Key") || e.code.startsWith("Digit")) {
-      noteTakingFormInstance?.focus();
-      return;
-    }
-    if (e.key === KeyboardShortcuts.CLOSE_APP) {
-      window.commonElectronAPI.closeOverlay();
-    }
-  }
-
-  function handleChange(newVal: string) {
-    if (newVal.startsWith(COMMAND_PREFIXES.COMMAND_START)) {
-      if (newVal.startsWith(COMMAND_PREFIXES.QUERYING)) {
-        window.commonElectronAPI.focusSearchWindow();
-        setWriteVal("");
-        return;
-      }
-      setWriteVal(newVal);
-      return;
-    }
+  function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const newVal = e.target.value;
 
     setWriteVal(newVal);
-
+    setTextData({ caret: -1, target: e.target });
     // Don't save if new note and only whitespace
-    if (!noteEditInfoRef.current && !newVal.trim().length) {
+    // Kinda hacky, what if we just call delete here instead of
+    // Having IPCHandler logic delete through edit?
+    if (!noteEditInfo && !newVal.length) {
       return;
     }
 
@@ -85,7 +74,7 @@ export default function WriteWindow() {
       clearTimeout(saveChangesTimerRef.current);
     }
     saveChangesTimerRef.current = setTimeout(
-      () => saveChanges(noteEditInfoRef.current, newVal),
+      () => saveChanges(noteEditInfo, newVal),
       SAVE_CHANGES_DELAY
     );
   }
@@ -96,7 +85,10 @@ export default function WriteWindow() {
     shouldUpdateCurrentNote: boolean = true
   ) {
     let newNoteEditInfo: NoteEditInfo | null = null;
+    writeVal = writeVal.trim(); // Trim to prevent whitespace
+
     if (!noteEditInfo) {
+      if (!writeVal) return;
       newNoteEditInfo = await window.writeElectronAPI.createNote(writeVal);
     } else {
       newNoteEditInfo = await window.writeElectronAPI.editNote({
@@ -108,27 +100,34 @@ export default function WriteWindow() {
     if (shouldUpdateCurrentNote) setNoteEditInfo(newNoteEditInfo);
   }
 
-  const getWindowTitle = () => {
-    if (writeVal.trim().length) {
-      return getNoteTitleFromContent(writeVal);
-    }
-
-    return DEFAULT_WINDOW_NAME;
-  };
-
   function handleClose() {
     window.commonElectronAPI.closeCurrentWindow();
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    const content = e.target.value;
+    const caret = e.target.selectionStart;
+
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const newText =
+        content.substring(0, caret) + TAB_CHARACTER + content.substring(caret);
+      setWriteVal(newText);
+      setTextData({ caret: caret, target: e.target });
+    }
   }
 
   return (
     <div className={styles.bgContainer}>
       <div className={styles.container}>
-        <WindowTitle windowTitle={getWindowTitle()} onClose={handleClose} />
-        <NoteTakingForm
-          writeVal={writeVal}
+        <WindowTitle windowTitle={"✏️ Jotter"} onClose={handleClose} />
+        <textarea
+          className={styles.textArea}
+          value={writeVal}
+          onKeyDown={handleKeyDown}
           onChange={handleChange}
-          setNoteTakingInstance={setNoteTakingFormInstance}
-          placeholder="New note..."
+          placeholder={"New note..."}
+          ref={textAreaRef}
         />
       </div>
     </div>

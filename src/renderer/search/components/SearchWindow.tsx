@@ -5,8 +5,10 @@ import ResultsList from "./ResultsList";
 import WindowTitle from "@renderer/common/components/WindowTitle";
 import { ResultDisplay } from "../types";
 import { processQueryResults } from "../helpers";
-import { NoteEditInfo } from "@renderer/common/types";
+import { NoteEditInfo } from "@src/common/types";
 import { QueryResultItem } from "@main/services/SearcherService";
+import ToolBar from "./ToolBar";
+import SearchInput from "./SearchInput";
 
 const INITIAL_SELECT_INDEX = -1;
 export default function SearchWindow() {
@@ -21,23 +23,23 @@ export default function SearchWindow() {
 
   const [selectIndex, setSelectIndex] = useState<number>(INITIAL_SELECT_INDEX); //Select search results using keyboard
 
-  const [isWindowFocused, setIsWindowFocused] = useState<boolean>(false);
+  const [isWindowFocused, setIsWindowFocused] = useState<boolean>(true);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     window.commonElectronAPI.onWindowFocusChange((_event, nowFocus) => {
       setIsWindowFocused(nowFocus);
+      if (nowFocus) searchInputRef.current?.focus();
     });
 
     window.searchElectronAPI.onRetriggerRequest((_event) => {
       queryAndSetResults();
     });
 
-    // Added to remove visual bug of search input being focused on launch
-    setTimeout(() => {
-      searchInputRef.current?.blur();
-    }, 500);
+    window.searchElectronAPI.onSetQuery((_event, query) => {
+      setQueryVal(query);
+    });
   }, []);
 
   useEffect(() => {
@@ -193,28 +195,28 @@ export default function SearchWindow() {
     });
   }
 
-  function handleSearchChange(newVal: string) {
-    setQueryVal(newVal);
+  function handleClose() {
+    window.commonElectronAPI.closeCurrentWindow();
   }
 
   return (
     <div className={styles.bgContainer}>
       <div className={styles.container}>
-        <WindowTitle windowTitle="🔎 Search notes" />
-        <div className={styles.searchInputContainer}>
-          <input
-            type="text"
-            className={styles.searchInput}
-            value={queryVal}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            ref={searchInputRef}
-            placeholder="Search..."
-          />
-        </div>
+        <WindowTitle windowTitle="🔎 Search notes" onClose={handleClose} />
+        <SearchInput
+          className={styles.searchInput}
+          inputRef={searchInputRef}
+          placeholder="Search here..."
+          queryVal={queryVal}
+          onQueryChange={(e) => setQueryVal(e.target.value)}
+          onClear={() => setQueryVal("")}
+        />
+        <ToolBar className={styles.toolBar} />
         <ResultsList
           items={resultDisplays}
           selectIndex={selectIndex}
           isWindowFocused={isWindowFocused}
+          className={styles.resultsList}
         />
       </div>
     </div>

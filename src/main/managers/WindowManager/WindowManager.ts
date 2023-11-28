@@ -1,180 +1,360 @@
-import { IPC_MESSAGE, KeyboardShortcuts } from "@src/common/constants";
-import { BrowserWindow, app, Menu, shell } from "electron";
+import { IPC_MESSAGE } from "@src/common/constants";
+import { BrowserWindow } from "electron";
 import { createSearchWindow } from "../../windows/createSearchWindow";
-import {
-  createWriteWindow,
-  resetWriteWindow,
-} from "../../windows/createWriteWindow";
-import { KeyboardModifiersState } from "@src/common/types";
-import { NoteEditInfo } from "@renderer/common/types";
+import { createWriteWindow } from "../../windows/createWriteWindow";
+import { NoteEditInfo } from "@src/common/types";
 import { createSettingsWindow } from "../../windows/createSettingsWindow";
 import { createIntroWindow } from "../../windows/createIntroWindow";
-import defaultMenu from "electron-default-menu";
+import BaseManager from "../BaseManager";
+import { MenuName } from "../MenuManager/MenuManager";
+import {
+  OpenIntroWindowSettings,
+  OpenSearchWindowSettings,
+  OpenSettingsWindowSettings,
+  OpenWriteWindowSettings,
+  WindowType,
+} from "./types";
+import { SHOW_DELAY } from "@main/common/constants";
+import { AppMode } from "../ModeManager/ModeManager";
 
 /*
-WindowManager handles most window operations. All windows are created through the main window manager object.
+WINDOW MANAGER handles most window operations, e.g opening, closing, and tracking windows.
 
 NOTES:
 - wcId stands for webContents id
 */
 
-export default class WindowManager {
-  private searchWindow: BrowserWindow | null = null;
-  private wcToSearcherIndexMap: { [wcId: number]: number | null } = [];
-  private wcToBrowserWindowMap: { [wcId: number]: BrowserWindow } = [];
-  private writeWindowFocusHistory: number[] = []; // Items in array are wcIds
-  private keyboardModifiersState: KeyboardModifiersState = {
-    metaKey: false,
-  };
-  private settingsWindow: BrowserWindow | null = null;
-  private introWindow: BrowserWindow | null = null;
-  private isAppInitialized = false;
-  private isAppShown = false;
-  private isAppClosable = false;
-  private isWindowOpening = false;
+export default class WindowManager extends BaseManager {
+  // wc Maps
+  private wcToSearcherIndexMap: { [wcId: number]: number } = {};
+  private wcToBrowserWindowMap: { [wcId: number]: BrowserWindow } = {};
+  private wcToWindowTypeMap: { [wcId: number]: WindowType } = {};
+  private wcToWindowPositionMap: { [wcId: number]: number[] } = {};
+  private wcToWindowSizeMap: { [wcId: number]: number[] } = {};
+
+  // unique windows represented by their wc id
+  private searchWindow: number | null = null;
+  private settingsWindow: number | null = null;
+  private introWindow: number | null = null;
+
+  // other states
+  private focusHistory: number[] = []; // Items in array are wcIds
 
   /*
-  SECTION: Initialize
+  SECTION: Open new windows
   */
-  async initializeMainWindows() {
-    if (this.isAppInitialized) return;
-    await this.openSearchWindow();
-    const firstWriteWindow = await createWriteWindow(this._onWriteWindowCreate);
-    this.writeWindowFocusHistory.push(firstWriteWindow.webContents.id);
-    this.isAppInitialized = true;
-    this.useMenu("default");
-  }
-
-  /*
-  SECTION: Close windows
-  */
-  closeAllWriteWindows() {
-    Object.values(this.wcToBrowserWindowMap).forEach((window) => {
-      window.close();
-    });
-  }
-
-  closeWriteWindowBySearcherIndex(searcherIndex: number) {
-    const wcId = Object.keys(this.wcToSearcherIndexMap).find(
-      (key: string) =>
-        this.wcToSearcherIndexMap[parseInt(key)] === searcherIndex
+  async openIntroWindow(openSettings?: OpenIntroWindowSettings) {
+    const window = await createIntroWindow(
+      this._onIntroWindowCreate,
+      openSettings?.createSettings
     );
 
-    if (wcId !== undefined) {
-      const browserWindow = this.wcToBrowserWindowMap[parseInt(wcId)];
-      browserWindow.close();
+    if (openSettings?.immediatelyShow) {
+      setTimeout(() => {
+        this.showWindowByWc(window.webContents.id);
+      }, SHOW_DELAY);
     }
+
+    return window;
   }
 
-  closeCurrentWindow() {
-    const currentWindow = BrowserWindow.getFocusedWindow();
-    if (currentWindow && currentWindow.isClosable()) {
-      currentWindow.close();
+  async openSettingsWindow(openSettings?: OpenSettingsWindowSettings) {
+    const window = await createSettingsWindow(
+      (createdWindow) => this._onSettingsWindowCreate(createdWindow),
+      openSettings?.createSettings
+    );
+
+    if (openSettings?.immediatelyShow) {
+      setTimeout(() => {
+        this.showWindowByWc(window.webContents.id);
+      }, SHOW_DELAY);
     }
+    return window;
+  }
+
+  async openSearchWindow(openSettings?: OpenSearchWindowSettings) {
+    const window = await createSearchWindow(
+      (createdWindow) =>
+        this._onSearchWindowCreate(createdWindow, openSettings?.query),
+      openSettings?.createSettings
+    );
+
+    if (openSettings?.immediatelyShow) {
+      setTimeout(() => {
+        this.showWindowByWc(window.webContents.id);
+      }, SHOW_DELAY);
+    }
+    return window;
+  }
+
+  async openWriteWindow(openSettings?: OpenWriteWindowSettings) {
+    const prevWindow = this.getLastFocusedWriteWindow();
+
+    const window = await createWriteWindow((createdWindow) => {
+      this._onWriteWindowCreate(
+        createdWindow,
+        openSettings?.noteEditInfo || null,
+        prevWindow
+      );
+    }, openSettings?.createSettings);
+
+    if (openSettings?.immediatelyShow) {
+      setTimeout(() => {
+        this.showWindowByWc(window.webContents.id);
+      }, SHOW_DELAY);
+    }
+
+    return window;
   }
 
   /*
-  SECTION: Write window assignment and registration
+  SECTION: On window create functions
   */
-  registerWriteWindow(newWindow: BrowserWindow, searcherIndex?: number) {
-    const wcId = newWindow.webContents.id;
-    this.wcToBrowserWindowMap[wcId] = newWindow;
-    this.wcToSearcherIndexMap[wcId] = searcherIndex || null;
-    return wcId;
-  }
+  /**
+   * SUB-SECTION: Common window functions on create
+   */
+  _onCommonWindowCreate = (
+    createdWindow: BrowserWindow,
+    windowType: WindowType
+  ) => {
+    const wcId = this.registerWindow(createdWindow, windowType);
 
-  deregisterWriteWindow(writeWindow: BrowserWindow) {
-    const wcId = writeWindow.webContents.id;
-    delete this.wcToBrowserWindowMap[wcId];
-    delete this.wcToSearcherIndexMap[wcId];
-  }
+    createdWindow.webContents.on(
+      "before-input-event",
+      (_event, electronInput) => {
+        this.electronKeyboardManager.handleElectronInputKeyboardModifiers(
+          electronInput
+        );
+      }
+    );
 
-  /*
-  Assigns a searcher index to a write window
-  */
-  assignWriteWindowSearcherIndex(wcId: number, searcherIndex: number) {
-    this.wcToSearcherIndexMap[wcId] = searcherIndex;
-  }
-
-  /*
-  Removes searcher index assignment from write window, denoting that it is now a new note window
-  */
-  revertWriteWindowSearcherIndex(wcId: number) {
-    this.wcToSearcherIndexMap[wcId] = null;
-  }
-
-  /*
-  Resets a write window's contents for new notes or general resets
-  */
-  resetWriteWindow(wcId: number) {
-    const currWindow = this.wcToBrowserWindowMap[wcId];
-    this.revertWriteWindowSearcherIndex(wcId);
-    currWindow.webContents.send(IPC_MESSAGE.FROM_MAIN.RESET_WRITE_WINDOW);
-  }
-
-  /*
-  SECTION: Focus on windows
-  */
-  focusSearchWindow() {
-    this.searchWindow?.focus();
-  }
-
-  focusWriteWindow(wcId: number) {
-    if (this.wcToBrowserWindowMap[wcId])
-      this.wcToBrowserWindowMap[wcId].focus();
-  }
-
-  focusLastFocusedWriteWindow() {
-    this.getLastFocusedWriteWindow()?.focus();
-  }
-
-  /* 
-  SECTION: Show and hide windows
-  */
-  showAllWindows() {
-    const windows = this.getAllOpenWindowsList();
-    windows.forEach((window) => {
-      window.show();
+    createdWindow.on("moved", () => {
+      this.wcToWindowPositionMap[wcId] = createdWindow.getPosition();
+      this.wcToWindowSizeMap[wcId] = createdWindow.getSize();
     });
 
-    app.show();
-    app.dock.hide();
+    createdWindow.on("resized", () => {
+      this.wcToWindowPositionMap[wcId] = createdWindow.getPosition();
+      this.wcToWindowSizeMap[wcId] = createdWindow.getSize();
+    });
+  };
 
-    this.isAppShown = true;
-  }
+  _onCommonWindowClose = (createdWindow: BrowserWindow) => {
+    this.deregisterWindow(createdWindow);
+    if (this.focusHistory.length === 0) {
+      this.modeManager.switchToClosedMode();
+    }
+  };
 
-  hideAllWindows() {
-    const windows = this.getAllOpenWindowsList();
-    windows.forEach((window) => window.hide());
+  _onCommonWindowFocus = (createdWindow: BrowserWindow) => {
+    const wcId = createdWindow.webContents.id;
 
-    app.hide();
-    app.dock.hide();
+    createdWindow.webContents.send(IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED, true);
 
-    this.isAppShown = false;
-  }
+    // Add to focus history
+    const shouldUpdateFocusHistory =
+      !this.focusHistory.length ||
+      (this.focusHistory.length &&
+        this.focusHistory[this.focusHistory.length - 1] !== wcId);
 
-  getIsAppShown() {
-    return this.isAppShown;
-  }
+    if (shouldUpdateFocusHistory) this.focusHistory.push(wcId);
+  };
 
-  // Called when we want to quit
-  allowClosureOfAllWindows() {
-    const windows = this.getAllOpenWindowsList();
-    windows.forEach((window) => window.setClosable(true));
-    this.isAppClosable = true;
-  }
+  _onCommonWindowBlur = (createdWindow: BrowserWindow) => {
+    createdWindow.webContents.send(IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED, false);
+  };
+
+  /**
+   * SUB-SECTION: Specific window create functions
+   */
+  _onIntroWindowCreate = (createdWindow: BrowserWindow) => {
+    const wcId = createdWindow.webContents.id;
+    this.introWindow = wcId;
+
+    createdWindow.on("focus", () => {
+      this.menuManager.useMenu(MenuName.intro);
+      this._onCommonWindowFocus(createdWindow);
+    });
+
+    createdWindow.on("blur", () => {
+      this._onCommonWindowBlur(createdWindow);
+    });
+
+    createdWindow.on("close", () => {
+      this.introWindow = null;
+      this._onCommonWindowClose(createdWindow);
+    });
+
+    this._onCommonWindowCreate(createdWindow, WindowType.Intro);
+  };
+
+  _onSettingsWindowCreate = (createdWindow: BrowserWindow) => {
+    const wcId = createdWindow.webContents.id;
+    this.settingsWindow = wcId;
+
+    createdWindow.on("focus", () => {
+      this.menuManager.useMenu(MenuName.settings);
+      this._onCommonWindowFocus(createdWindow);
+    });
+
+    createdWindow.on("blur", () => {
+      createdWindow.close();
+    });
+
+    createdWindow.on("close", () => {
+      this.settingsWindow = null;
+      const modeHistory = this.modeManager.getModeHistory();
+      const lastIndex = modeHistory.length - 1;
+      if (
+        modeHistory[lastIndex] === AppMode.OPEN ||
+        modeHistory[lastIndex - 1] === AppMode.OPEN
+      ) {
+        this.modeManager.switchToOpenMode();
+      }
+      this._onCommonWindowClose(createdWindow);
+    });
+
+    this._onCommonWindowCreate(createdWindow, WindowType.Settings);
+  };
+
+  _onSearchWindowCreate = (createdWindow: BrowserWindow, query?: string) => {
+    const wcId = createdWindow.webContents.id;
+    this.searchWindow = wcId;
+
+    createdWindow.on("focus", () => {
+      this.menuManager.useMenu(MenuName.search);
+      this._onCommonWindowFocus(createdWindow);
+    });
+
+    createdWindow.on("blur", () => {
+      this._onCommonWindowBlur(createdWindow);
+    });
+
+    createdWindow.on("close", () => {
+      this.searchWindow = null;
+      this._onCommonWindowClose(createdWindow);
+    });
+
+    if (query) {
+      createdWindow.webContents.send(
+        IPC_MESSAGE.FROM_MAIN.SET_SEARCH_QUERY,
+        query
+      );
+    }
+
+    this._onCommonWindowCreate(createdWindow, WindowType.Search);
+    this.modeManager.ensureOpenMode();
+  };
+
+  _onWriteWindowCreate = (
+    createdWindow: BrowserWindow,
+    noteEditInfo: NoteEditInfo | null,
+    prevWindow: BrowserWindow | null
+  ) => {
+    const wcId = createdWindow.webContents.id;
+
+    createdWindow.on("focus", () => {
+      this.menuManager.useMenu(MenuName.write);
+      this._onCommonWindowFocus(createdWindow);
+    });
+
+    createdWindow.on("blur", () => {
+      this._onCommonWindowBlur(createdWindow);
+    });
+
+    createdWindow.on("close", () => {
+      this._onCommonWindowClose(createdWindow);
+      if (this.getLastFocusedWriteWindow()) {
+        this.focusLastFocusedWriteWindow();
+      } else {
+        this.focusLastFocusedWindow();
+      }
+    });
+
+    if (noteEditInfo) {
+      createdWindow.webContents.send(
+        IPC_MESSAGE.FROM_MAIN.SEND_NOTE_FOR_EDIT,
+        noteEditInfo
+      );
+
+      this.assignWriteWindowSearcherIndex(wcId, noteEditInfo.searcherIndex);
+    }
+
+    if (prevWindow) {
+      const { x, y } = prevWindow.getBounds();
+      const X__PREVIOUS_PADDING = 5;
+      const Y__PREVIOUS_PADDING = 5;
+
+      createdWindow.setPosition(
+        x + X__PREVIOUS_PADDING,
+        y + Y__PREVIOUS_PADDING,
+        false
+      );
+    }
+
+    this._onCommonWindowCreate(createdWindow, WindowType.Write);
+    this.modeManager.ensureOpenMode();
+  };
 
   /*
   SECTION: Get specific windows
   */
-  getLastFocusedWriteWindow() {
-    if (!this.writeWindowFocusHistory.length) return null;
-    const wcId =
-      this.writeWindowFocusHistory[this.writeWindowFocusHistory.length - 1];
-    return this.wcToBrowserWindowMap[wcId];
+  getIntroWindow(): BrowserWindow | null {
+    if (this.introWindow === null) return null;
+    return this.wcToBrowserWindowMap[this.introWindow];
   }
 
-  getBrowserViewFromSearcherIndex(searcherIndex: number) {
+  getSettingsWindow(): BrowserWindow | null {
+    if (this.settingsWindow === null) return null;
+    return this.wcToBrowserWindowMap[this.settingsWindow];
+  }
+
+  getSearchWindow(): BrowserWindow | null {
+    if (this.searchWindow === null) return null;
+    return this.wcToBrowserWindowMap[this.searchWindow];
+  }
+
+  getAllOpenWindowsList(): BrowserWindow[] {
+    const toReturn = Object.values(this.wcToBrowserWindowMap).map((window) => {
+      return window;
+    });
+    return toReturn;
+  }
+
+  getAllWindowsByType(windowType: WindowType): BrowserWindow[] {
+    const toReturn: BrowserWindow[] = [];
+    Object.entries(this.wcToWindowTypeMap).forEach((entry) => {
+      const wcId = parseInt(entry[0]);
+      const currType = entry[1];
+      if (currType === windowType) {
+        const windowToAdd = this.wcToBrowserWindowMap[wcId];
+        if (windowToAdd) toReturn.push(windowToAdd);
+      }
+    });
+
+    return toReturn;
+  }
+
+  getLastFocusedWindow(): BrowserWindow | null {
+    if (!this.focusHistory.length) return null;
+    const wcId = this.focusHistory[this.focusHistory.length - 1];
+    return this.wcToBrowserWindowMap[wcId] || null;
+  }
+
+  getLastFocusedWriteWindow(): BrowserWindow | null {
+    if (!this.focusHistory.length) return null;
+    for (let i = this.focusHistory.length - 1; i >= 0; i--) {
+      const wcId = this.focusHistory[i];
+      if (this.wcToWindowTypeMap[wcId] === WindowType.Write) {
+        return this.wcToBrowserWindowMap[wcId];
+      }
+    }
+    return null;
+  }
+
+  getBrowserWindowFromSearcherIndex(
+    searcherIndex: number
+  ): BrowserWindow | null {
     let existingWcId: number | null = null;
     Object.entries(this.wcToSearcherIndexMap).forEach((item) => {
       const [key, val] = item;
@@ -189,389 +369,189 @@ export default class WindowManager {
     return this.wcToBrowserWindowMap[existingWcId] || null;
   }
 
-  getSearchWindow() {
-    return this.searchWindow;
-  }
-
-  getSettingsWindow() {
-    return this.settingsWindow;
-  }
-
-  getIntroWindow() {
-    return this.introWindow;
-  }
-
-  getAllOpenWindowsList() {
-    const toReturn = [];
-    if (this.searchWindow) {
-      toReturn.push(this.searchWindow);
-    }
-    if (this.settingsWindow) {
-      toReturn.push(this.settingsWindow);
-    }
-    if (this.introWindow) {
-      toReturn.push(this.introWindow);
-    }
-    Object.values(this.wcToBrowserWindowMap).forEach((window) => {
-      toReturn.push(window);
-    });
-    return toReturn;
+  getWindowByWc(wcId: number) {
+    return this.wcToBrowserWindowMap[wcId] || null;
   }
 
   /*
-  SECTION: Open new windows
+  SECTION: Close windows
   */
-  async openSettingsWindow() {
-    if (!this.settingsWindow) {
-      this.settingsWindow = await createSettingsWindow(
-        this._onSettingsWindowCreate
-      );
-    }
-
-    // Focus immediately on open
-    this.settingsWindow.show();
-    this.settingsWindow.focus();
+  closeAllWriteWindows() {
+    this.getAllWindowsByType(WindowType.Write).forEach((window) =>
+      window.close()
+    );
   }
 
-  async openWriteWindowForNote(noteEditInfo?: NoteEditInfo) {
-    if (this.isWindowOpening) return;
-    this.isWindowOpening = true;
+  closeWriteWindowBySearcherIndex(searcherIndex: number) {
+    const wcId = Object.keys(this.wcToSearcherIndexMap).find(
+      (key: string) =>
+        this.wcToSearcherIndexMap[parseInt(key)] === searcherIndex
+    );
 
-    const searcherIndex = noteEditInfo ? noteEditInfo.searcherIndex : null;
+    if (wcId !== undefined && wcId !== null) {
+      const browserWindow = this.wcToBrowserWindowMap[parseInt(wcId)];
+      browserWindow?.close();
+    }
+  }
 
-    const prevWindow = this.getLastFocusedWriteWindow();
+  closeCurrentWindow() {
+    const currentWindow = BrowserWindow.getFocusedWindow();
+    if (currentWindow && currentWindow.isClosable()) {
+      currentWindow.close();
+    }
+  }
 
-    const newWindow = await createWriteWindow((createdWindow) => {
-      this._onWriteWindowCreate(createdWindow);
-
-      if (noteEditInfo) {
-        createdWindow.webContents.send(
-          IPC_MESSAGE.FROM_MAIN.SEND_NOTE_FOR_EDIT,
-          noteEditInfo
-        );
-      }
-
-      if (prevWindow) {
-        const { x, y } = prevWindow.getBounds();
-        const X__PREVIOUS_PADDING = 5;
-        const Y__PREVIOUS_PADDING = 5;
-
-        createdWindow.setPosition(
-          x + X__PREVIOUS_PADDING,
-          y + Y__PREVIOUS_PADDING,
-          false
-        );
-      }
-
-      createdWindow.show();
-      createdWindow.focus();
+  closeAllWindows() {
+    this.getAllOpenWindowsList().forEach((window) => {
+      window.setClosable(true);
+      window.close();
     });
-
-    if (searcherIndex !== null)
-      this.registerWriteWindow(newWindow, searcherIndex);
-
-    this.isWindowOpening = false;
-
-    return newWindow;
   }
 
-  async openIntroWindow() {
-    if (!this.introWindow) {
-      this.introWindow = await createIntroWindow(this._onIntroWindowCreate);
-    }
-
-    // Focus immediately on open
-    this.introWindow.show();
-    this.introWindow.focus();
+  closeSearchWindow() {
+    const searchWindow = this.getSearchWindow();
+    if (searchWindow) searchWindow.close();
   }
 
-  async openSearchWindow() {
-    if (!this.searchWindow) {
-      this.searchWindow = await createSearchWindow(this._onSearchWindowCreate);
-    }
+  /*
+  SECTION: Window assignment and registration
+  */
+  registerWindow(newWindow: BrowserWindow, windowType: WindowType) {
+    const wcId = newWindow.webContents.id;
+    this.wcToBrowserWindowMap[wcId] = newWindow;
+    this.wcToWindowTypeMap[wcId] = windowType;
+    this.wcToWindowPositionMap[wcId] = newWindow.getPosition();
+    this.wcToWindowSizeMap[wcId] = newWindow.getSize();
+    return wcId;
+  }
+
+  deregisterWindow(writeWindow: BrowserWindow) {
+    const wcId = writeWindow.webContents.id;
+    delete this.wcToBrowserWindowMap[wcId];
+    delete this.wcToWindowTypeMap[wcId];
+    delete this.wcToWindowPositionMap[wcId];
+    delete this.wcToWindowSizeMap[wcId];
+    if (this.wcToSearcherIndexMap[wcId]) delete this.wcToSearcherIndexMap[wcId];
+
+    // Remove from focus history
+    this.focusHistory = this.focusHistory.filter(
+      (otherIds) => otherIds !== wcId
+    );
+  }
+
+  /*
+  Assigns a searcher index to a write window
+  */
+  assignWriteWindowSearcherIndex(wcId: number, searcherIndex: number) {
+    this.wcToSearcherIndexMap[wcId] = searcherIndex;
+  }
+
+  /*
+  Removes searcher index assignment from write window, denoting that it is now a new note window
+  */
+  revertWriteWindowSearcherIndexUsingWcId(wcId: number) {
+    if (this.wcToSearcherIndexMap[wcId]) delete this.wcToSearcherIndexMap[wcId];
+  }
+
+  /*
+  Resets a write window's contents for new notes or general resets
+  */
+  resetWriteWindowContents(writeWindow: BrowserWindow) {
+    const wcId = writeWindow.webContents.id;
+    this.revertWriteWindowSearcherIndexUsingWcId(wcId);
+    writeWindow.webContents.send(IPC_MESSAGE.FROM_MAIN.RESET_WRITE_WINDOW);
+  }
+
+  /*
+  SECTION: Focus on windows
+  */
+  focusSearchWindow() {
+    this.getSearchWindow()?.focus();
+  }
+
+  focusOrCreateSearchWindow() {
+    const currWindow = this.getSearchWindow();
+    if (currWindow) currWindow.focus();
+    else this.openSearchWindow({ immediatelyShow: true });
+  }
+
+  focusWriteWindow(wcId: number) {
+    if (this.wcToBrowserWindowMap[wcId])
+      this.wcToBrowserWindowMap[wcId].focus();
+  }
+
+  focusLastFocusedWriteWindow() {
+    this.getLastFocusedWriteWindow()?.focus();
+  }
+
+  focusOrCreateLastFocusedWriteWindow() {
+    const currWindow = this.getLastFocusedWriteWindow();
+    if (currWindow) currWindow.focus();
+    else this.openWriteWindow({ immediatelyShow: true });
+  }
+
+  focusLastFocusedWindow() {
+    this.getLastFocusedWindow()?.focus();
+  }
+
+  /**
+   * SECTION: Show windows
+   */
+  showWindowByWc(wcId: number) {
+    this.getWindowByWc(wcId)?.show();
   }
 
   /*
   SECTION: Utility
   */
   handleNewNote() {
-    const lastFocused = this.getLastFocusedWriteWindow();
-    if (lastFocused) this.resetWriteWindow(lastFocused.webContents.id);
-  }
-
-  /*
-  SECTION: On window create functions
-  */
-  _onCommonWindowCreate = (createdWindow: BrowserWindow) => {
-    createdWindow.webContents.on(
-      "before-input-event",
-      (_event, electronInput) => {
-        this.handleElectronInputKeyboardModifiers(electronInput);
-      }
-    );
-  };
-
-  _onSettingsWindowCreate = (createdWindow: BrowserWindow) => {
-    createdWindow.on("focus", () => {
-      this.useMenu("settings");
-    });
-
-    createdWindow.on("blur", () => {
-      createdWindow.close();
-      createdWindow.destroy();
-    });
-
-    createdWindow.on("close", () => {
-      this.settingsWindow = null;
-    });
-
-    this._onCommonWindowCreate(createdWindow);
-  };
-
-  _onIntroWindowCreate = (createdWindow: BrowserWindow) => {
-    createdWindow.on("focus", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        true
-      );
-      this.useMenu("intro");
-    });
-
-    createdWindow.on("blur", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        false
-      );
-    });
-
-    createdWindow.on("close", () => {
-      this.introWindow = null;
-    });
-
-    this._onCommonWindowCreate(createdWindow);
-  };
-
-  _onSearchWindowCreate = (createdWindow: BrowserWindow) => {
-    createdWindow.on("focus", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        true
-      );
-      this.useMenu("search");
-    });
-
-    createdWindow.on("blur", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        false
-      );
-    });
-
-    this._onCommonWindowCreate(createdWindow);
-  };
-
-  _onWriteWindowCreate = (createdWindow: BrowserWindow) => {
-    const wcId = this.registerWriteWindow(createdWindow);
-
-    createdWindow.on("focus", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        true
-      );
-      const shouldUpdateFocusHistory =
-        !this.writeWindowFocusHistory.length ||
-        (this.writeWindowFocusHistory.length &&
-          this.writeWindowFocusHistory[
-            this.writeWindowFocusHistory.length - 1
-          ] !== wcId);
-
-      if (shouldUpdateFocusHistory) this.writeWindowFocusHistory.push(wcId);
-
-      this.useMenu("write");
-    });
-
-    createdWindow.on("blur", () => {
-      createdWindow.webContents.send(
-        IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED,
-        false
-      );
-    });
-
-    createdWindow.on("close", (electronEvent) => {
-      // Remove from focus history
-      this.writeWindowFocusHistory = this.writeWindowFocusHistory.filter(
-        (otherIds) => otherIds !== wcId
-      );
-
-      if (this.isAppClosable) return;
-
-      const lastFocusedWindow = this.getLastFocusedWriteWindow();
-      if (lastFocusedWindow) {
-        lastFocusedWindow.focus();
-        this.deregisterWriteWindow(createdWindow);
-        createdWindow.destroy();
-      } else {
-        // If no window to focus on last, we reset
-        electronEvent.preventDefault();
-
-        // Reset representations of window and contents
-        this.resetWriteWindow(wcId);
-
-        // Reset size and position
-        resetWriteWindow(createdWindow);
-
-        // Add to focus history
-        this.writeWindowFocusHistory.push(wcId);
-      }
-    });
-
-    this._onCommonWindowCreate(createdWindow);
-  };
-
-  /*
-  SECTION: Keyboard modifiers
-  */
-
-  handleElectronInputKeyboardModifiers = (electronInput: Electron.Input) => {
-    if (electronInput.type === "keyUp") {
-      if (electronInput.key === "Meta") {
-        this.keyboardModifiersState.metaKey = false;
+    if (this.modeManager.isAppInOpenMode()) {
+      const lastFocused = this.getLastFocusedWriteWindow();
+      if (lastFocused) this.resetWriteWindowContents(lastFocused);
+      else {
+        this.openWriteWindow({ immediatelyShow: true });
       }
     }
-    if (electronInput.type === "keyDown") {
-      if (electronInput.key === "Meta") {
-        this.keyboardModifiersState.metaKey = true;
+  }
+
+  // Called when we want to quit
+  allowClosureOfAllWindows() {
+    const windows = this.getAllOpenWindowsList();
+    windows.forEach((window) => window.setClosable(true));
+  }
+
+  getFocusHistory() {
+    return this.focusHistory;
+  }
+
+  /**
+   * Clean focus history removes any duplicates for rendering purposes, biasing later entries of duplicates
+   */
+  getCleanFocusHistory() {
+    if (!this.focusHistory.length) return [];
+    const toReturn: number[] = [];
+    const duplicateSet = new Set<number>();
+    for (let i = this.focusHistory.length - 1; i >= 0; i--) {
+      const wcId = this.focusHistory[i];
+      if (!duplicateSet.has(wcId)) {
+        toReturn.unshift(wcId);
+        duplicateSet.add(wcId);
       }
     }
-  };
-
-  getKeyboardModifiersState() {
-    return this.keyboardModifiersState;
+    return toReturn;
   }
 
-  /*
-  SECTION: Entry functions
-  */
-
-  handleMainEntry() {
-    if (!this.isAppShown) {
-      this.showAllWindows();
-      this.focusLastFocusedWriteWindow();
-    } else {
-      this.hideAllWindows();
-    }
+  setFocusHistory(newHistory: number[]) {
+    this.focusHistory = newHistory;
   }
 
-  handleSearchEntry() {
-    if (!this.isAppShown) {
-      this.showAllWindows();
-    }
-    this.focusSearchWindow();
-  }
-
-  /*
-  SECTION: Utility functions
-  */
-
-  /*
-  SECTION: Menus
-  */
-  useMenu(windowName: "write" | "search" | "settings" | "intro" | "default") {
-    let menu: Electron.MenuItemConstructorOptions[] = null!;
-    switch (windowName) {
-      case "write":
-        menu = this.createWriteWindowMenu();
-        break;
-      case "search":
-        menu = this.createSearchWindowMenu();
-        break;
-      case "settings":
-        menu = this.createSettingsWindowMenu();
-        break;
-      case "intro":
-        menu = this.createIntroWindowMenu();
-        break;
-      case "default":
-        menu = this.createDefaultMenu();
-        break;
-      default:
-        menu = this.createDefaultMenu();
-        break;
-    }
-    Menu.setApplicationMenu(Menu.buildFromTemplate(menu));
-  }
-
-  createDefaultMenu() {
-    const menu = defaultMenu(app, shell);
-    menu[0] = {
-      label: "first",
-      submenu: [
-        {
-          label: "New note",
-          accelerator: KeyboardShortcuts.NEW_NOTE,
-          click: () => this.handleNewNote(),
-        },
-        {
-          label: "Write note",
-          accelerator: KeyboardShortcuts.WRITE_NOTE,
-          click: () => this.focusLastFocusedWriteWindow(),
-        },
-        { type: "separator" },
-        {
-          label: "Search notes",
-          accelerator: KeyboardShortcuts.SEARCH_NOTES,
-          click: () => this.focusSearchWindow(),
-        },
-        { type: "separator" },
-        {
-          label: "Close",
-          accelerator: KeyboardShortcuts.CLOSE_APP,
-          click: () => this.hideAllWindows(),
-        },
-        {
-          label: "Quit",
-          accelerator: KeyboardShortcuts.QUIT_APP,
-          click: () => this.hideAllWindows(),
-        },
-      ],
+  getAllMaps() {
+    return {
+      wcToSearcherIndexMap: this.wcToSearcherIndexMap,
+      wcToBrowserWindowMap: this.wcToBrowserWindowMap,
+      wcToWindowTypeMap: this.wcToWindowTypeMap,
+      wcToWindowPositionMap: this.wcToWindowPositionMap,
+      wcToWindowSizeMap: this.wcToWindowSizeMap,
     };
-
-    // Remove unwanted items
-    menu.splice(
-      menu.findIndex((e) => e.label === "Help"),
-      1
-    );
-
-    return menu;
-  }
-
-  createWriteWindowMenu() {
-    const menu = this.createDefaultMenu();
-    const mainSubmenu = menu[0]
-      .submenu as Electron.MenuItemConstructorOptions[];
-    mainSubmenu.splice(1, 1);
-    return menu;
-  }
-
-  createSearchWindowMenu() {
-    const menu = this.createDefaultMenu();
-    const mainSubmenu = menu[0]
-      .submenu as Electron.MenuItemConstructorOptions[];
-    mainSubmenu.splice(2, 2);
-    return menu;
-  }
-
-  createSettingsWindowMenu() {
-    const menu = this.createDefaultMenu();
-
-    return menu;
-  }
-
-  createIntroWindowMenu() {
-    const menu = this.createDefaultMenu();
-    const mainSubmenu = menu[0]
-      .submenu as Electron.MenuItemConstructorOptions[];
-    mainSubmenu.splice(0, 5);
-    return menu;
   }
 }

@@ -1,7 +1,6 @@
 .container {
   overflow-y: scroll;
   width: 100%;
-  margin-top: 8px;
   /* width */
   &::-webkit-scrollbar {
     width: 6px;
@@ -23,7 +22,7 @@
   width: calc(100% - 8px);
   background-color: var(--color-accent);
   border-radius: 4px;
-  border: 1px solid var(--color-accent-3);
+  border: 1px solid transparent;
   font-size: 12px;
   word-wrap: break-word;
   white-space: pre-wrap;
@@ -45,7 +44,7 @@
 .chunkParagraph {
   padding: 4px;
   &:not(:first-child) {
-    border-top: 1px solid var(--color-accent-2);
+    border-top: 3px solid var(--color-background);
   }
 }
 

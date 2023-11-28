@@ -4,10 +4,15 @@ import FilerService from "./services/FilerService";
 import SearcherService from "./services/SearcherService";
 import { ScanAllFilesResult, scanAllNoteFiles } from "./scanAllNoteFiles";
 import settings from "electron-settings";
-import { APP_SETTINGS, KeyboardShortcuts } from "@src/common/constants";
 import WindowManager from "./managers/WindowManager";
 import TrayManager from "./managers/TrayManager";
 import AutoLaunch from "auto-launch";
+import MenuManager from "./managers/MenuManager";
+import ModeManager from "./managers/ModeManager";
+import ElectronKeyboardManager from "./managers/ElectronKeyboardManager";
+import { ManagerList } from "./managers/BaseManager";
+import MemoryManager from "./managers/MemoryManager";
+import SettingsManager from "./managers/SettingsManager";
 
 const autoLauncher = new AutoLaunch({
   name: "Jotter",
@@ -32,15 +37,34 @@ settings.configure({
   numSpaces: 2,
 });
 
-/* Constants */
-const SHOW_DELAY = 50;
-
-/* Window states */
+/* Initialize services */
 const searcherService: SearcherService = new SearcherService();
 const filerService: FilerService = new FilerService();
-const windowManager: WindowManager = new WindowManager();
-const trayManager: TrayManager = new TrayManager(windowManager, quitApp);
 
+/* Initialize managers */
+const windowManager: WindowManager = new WindowManager();
+const trayManager: TrayManager = new TrayManager(quitApp);
+const menuManager: MenuManager = new MenuManager();
+const modeManager: ModeManager = new ModeManager(searcherService);
+const electronKeyboardManager: ElectronKeyboardManager =
+  new ElectronKeyboardManager();
+const memoryManager: MemoryManager = new MemoryManager(searcherService);
+const settingsManager: SettingsManager = new SettingsManager();
+const managerList: ManagerList = [
+  windowManager,
+  trayManager,
+  menuManager,
+  modeManager,
+  electronKeyboardManager,
+  memoryManager,
+  settingsManager,
+];
+
+managerList.forEach((manager) => {
+  manager.injectManagers(managerList);
+});
+
+/* App states */
 let enableQuit = false;
 
 function quitApp() {
@@ -63,7 +87,6 @@ app.on("window-all-closed", () => {
 app.on("before-quit", (event) => {
   if (!enableQuit) {
     event.preventDefault();
-    windowManager.hideAllWindows();
   }
 });
 
@@ -79,67 +102,56 @@ async function initializeNotes(notesFolderPath: string) {
   // Start services
   searcherService.setSearcherDocs(searcherDocs);
   filerService.setNotesFolderPath(notesFolderPath);
-
-  // Initialize windows
-  await windowManager.initializeMainWindows();
-
-  setTimeout(() => {
-    windowManager.showAllWindows();
-  }, SHOW_DELAY);
 }
 
 async function registerGlobalKeyboardShortcuts() {
-  // Get settings
-  let mainEntryShortcut = (await settings.get(
-    APP_SETTINGS.MAIN_ENTRY_SHORTCUT
-  )) as string;
-  if (!mainEntryShortcut) {
-    settings.set(
-      APP_SETTINGS.MAIN_ENTRY_SHORTCUT,
-      KeyboardShortcuts.MAIN_ENTRY
-    );
-    mainEntryShortcut = KeyboardShortcuts.MAIN_ENTRY;
-  }
+  // Register open entry shortcut
+  const openEntryShortcut =
+    await settingsManager.ensureOpenEntryShortcutIsInitialized();
 
-  globalShortcut.register(mainEntryShortcut, async () => {
-    windowManager.handleMainEntry();
+  globalShortcut.register(openEntryShortcut, async () => {
+    if (await modeManager.shouldKeepInIntroMode()) {
+      modeManager.switchToIntroMode();
+    } else {
+      if (!modeManager.isAppInOpenMode())
+        modeManager.switchToOpenMode({ writeAfterwards: true });
+      else windowManager.focusOrCreateLastFocusedWriteWindow();
+    }
   });
 
-  let searchEntryShortcut = (await settings.get(
-    APP_SETTINGS.SEARCH_ENTRY_SHORTCUT
-  )) as string;
-  if (!searchEntryShortcut) {
-    settings.set(
-      APP_SETTINGS.SEARCH_ENTRY_SHORTCUT,
-      KeyboardShortcuts.SEARCH_ENTRY
-    );
-    searchEntryShortcut = KeyboardShortcuts.SEARCH_ENTRY;
-  }
-
+  // Register search entry shortcut
+  const searchEntryShortcut =
+    await settingsManager.ensureSearchEntryShortcutIsInitialized();
   globalShortcut.register(searchEntryShortcut, async () => {
-    windowManager.handleSearchEntry();
+    if (await modeManager.shouldKeepInIntroMode()) {
+      modeManager.switchToIntroMode();
+    } else {
+      if (!modeManager.isAppInOpenMode())
+        modeManager.switchToOpenMode({ searchAfterwards: true });
+      else windowManager.focusOrCreateSearchWindow();
+    }
   });
 }
 
 app.whenReady().then(async () => {
   // Uncomment to test beginner CX
-  // await settings.unset(APP_SETTINGS.NOTES_FOLDER_PATH);
+  // await settingsManager.setNotesFolderPath("");
 
   app.setName("Jotter");
 
   // Set up IPC Handlers
-  new IpcHandlers(searcherService, filerService, windowManager);
+  new IpcHandlers(searcherService, filerService, managerList);
 
-  // Build tray
-  await trayManager.initialize();
+  const notesFolderPath = await settingsManager.getNotesFolderPath();
 
-  const notesFolderPath = (await settings.get(
-    APP_SETTINGS.NOTES_FOLDER_PATH
-  )) as string;
+  // Initialize tray
+  trayManager.initialize();
+
   if (!notesFolderPath) {
-    await windowManager.openIntroWindow();
+    await modeManager.switchToIntroMode();
   } else {
     initializeNotes(notesFolderPath);
+    await modeManager.switchToOpenMode();
   }
 
   registerGlobalKeyboardShortcuts();

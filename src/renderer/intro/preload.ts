@@ -11,8 +11,8 @@ import getCommonPreloadFunctions from "@renderer/common/getCommonPreloadFunction
 
 /* CONTEXT BRIDGE */
 const INTRO_ELECTRON_API: IntroElectronAPI = {
-  setNotesFolderPath: (newPath: string) =>
-    ipcRenderer.invoke(
+  initialSetNotesFolderPath: (newPath: string) =>
+    ipcRenderer.send(
       IPC_MESSAGE.FROM_RENDERER.INITIAL_SET_NOTES_FOLDER_PATH,
       newPath
     ),

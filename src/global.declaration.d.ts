@@ -1,5 +1,4 @@
-import { NoteEditInfo } from "@renderer/common/types";
-import { KeyboardModifiersState } from "./common/types";
+import { KeyboardModifiersState, NoteEditInfo } from "./common/types";
 import { QueryResultItem } from "@main/services/SearcherService";
 
 export type CommonElectronAPI = {
@@ -9,6 +8,8 @@ export type CommonElectronAPI = {
   closeOverlay: () => void;
   getKeyboardModifiersState: () => Promise<KeyboardModifiersState>;
   closeCurrentWindow: () => void;
+  openSettings: () => void;
+  openNotesFolderPath: () => Promise<{ isError: boolean; errorMsg: string }>;
 };
 
 export type WriteElectronAPI = {
@@ -30,18 +31,17 @@ export type SearchElectronAPI = {
   openWriteWindowForNote: (noteEditInfo: NoteEditInfo) => void;
   confirmAndDeleteNote: (noteEditInfo: NoteEditInfo) => Promise<boolean>; // Returns true if note is deleted
   openContextMenuForResultItem: (noteEditInfo: NoteEditInfo) => void;
+  onSetQuery: (cb: (_event: any, query: string) => void) => void;
 };
 
 export type SettingsElectronAPI = {
   getNotesFolderPath: () => Promise<string | undefined>;
   setNotesFolderPath: (newPath: string) => void;
   openDialogNotesFolderPath: () => Promise<string | undefined>;
-  getMainEntryShortcut: () => Promise<string | undefined>;
-  setMainEntryShortcut: (newShortcut: string) => void;
 };
 
 export type IntroElectronAPI = {
-  setNotesFolderPath: (newPath: string) => Promise<boolean>;
+  initialSetNotesFolderPath: (newPath: string) => void;
   openDialogNotesFolderPath: () => Promise<string | undefined>;
   closeIntroWindow: () => void;
 };

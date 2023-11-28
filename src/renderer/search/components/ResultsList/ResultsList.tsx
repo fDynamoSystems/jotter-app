@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import styles from "./ResultsList.module.scss";
 import { ResultDisplay, ResultChunk } from "@renderer/search/types";
-import { NoteEditInfo } from "@renderer/common/types";
+import { NoteEditInfo } from "@src/common/types";
 
 /*
 Result list is the entire list
@@ -10,6 +10,7 @@ type ResultsListProps = {
   items: ResultDisplay[];
   selectIndex: number;
   isWindowFocused: boolean;
+  className?: string;
 };
 export default function ResultsList(props: ResultsListProps) {
   const renderItems = () => {
@@ -27,7 +28,11 @@ export default function ResultsList(props: ResultsListProps) {
       });
     }
   };
-  return <div className={styles.container}>{renderItems()}</div>;
+  return (
+    <div className={styles.container + ` ${props.className || ""}`}>
+      {renderItems()}
+    </div>
+  );
 }
 
 /*
@@ -47,7 +52,7 @@ const ResultItem = ({ item, isSelected, isWindowFocused }: ResultItemProps) => {
       // Check if item in viewport
       const rect = containerDivRef.current.getBoundingClientRect();
 
-      const TOP_PADDING = 70; // Padding for elements above search
+      const TOP_PADDING = 100; // Padding for elements above search
       const isVisible =
         rect.top >= TOP_PADDING &&
         rect.left >= 0 &&

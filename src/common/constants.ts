@@ -15,27 +15,29 @@ export const IPC_MESSAGE = {
     SET_NOTES_FOLDER_PATH: "set-notes-folder-path",
     GET_NOTES_FOLDER_PATH: "get-notes-folder-path",
     OPEN_DIALOG_NOTES_FOLDER_PATH: "open-settings-dialog",
-    SET_MAIN_ENTRY_SHORTCUT: "set-main-entry-shortcut",
-    GET_MAIN_ENTRY_SHORTCUT: "get-main-entry-shortcut",
     INITIAL_SET_NOTES_FOLDER_PATH: "initial-set-notes-folder-path",
     CLOSE_INTRO: "close-intro",
     CONFIRM_AND_DELETE_NOTE: "confirm-and-delete-note",
     CONTEXT_MENU_RESULT_ITEM: "context-menu-result-item",
     CLOSE_CURRENT_WINDOW: "close-current-window",
+    OPEN_SETTINGS: "open-settings",
+    OPEN_NOTES_FOLDER_PATH: "open-notes-folder-path",
   },
   FROM_MAIN: {
     WINDOW_FOCUSED: "window-focused",
     RETRIGGER_SEARCH: "retrigger-search",
     SEND_NOTE_FOR_EDIT: "send-note-for-edit",
     RESET_WRITE_WINDOW: "reset-write-window",
+    SET_SEARCH_QUERY: "set-search-query",
   },
 } as const;
 
 export enum KeyboardShortcuts {
-  MAIN_ENTRY = "Alt+CommandOrControl+N",
+  OPEN_ENTRY = "Alt+CommandOrControl+N",
   SEARCH_ENTRY = "Alt+CommandOrControl+F",
   CLOSE_APP = "Escape",
   NEW_NOTE = "CommandOrControl+N",
+  NEW_NOTE_WINDOW = "Shift+CommandOrControl+N",
   SEARCH_NOTES = "Shift+CommandOrControl+F",
   WRITE_NOTE = "Shift+CommandOrControl+E",
   QUIT_APP = "CommandOrControl+Q",
@@ -43,11 +45,5 @@ export enum KeyboardShortcuts {
 
 export const BG_COLOR_DARK = "#242424";
 export const BG_COLOR_LIGHT = "#FFF";
-
-export const APP_SETTINGS = {
-  NOTES_FOLDER_PATH: "notebookFolderPath",
-  MAIN_ENTRY_SHORTCUT: "mainEntryShortcut",
-  SEARCH_ENTRY_SHORTCUT: "searchEntryShortcut",
-};
 
 export const MAX_NOTE_TITLE_LENGTH = 200;

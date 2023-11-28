@@ -15,8 +15,8 @@ const SEARCH_ELECTRON_API: SearchElectronAPI = {
     ipcRenderer.invoke(IPC_MESSAGE.FROM_RENDERER.QUERY_NOTES, query),
   getRecentNotes: () =>
     ipcRenderer.invoke(IPC_MESSAGE.FROM_RENDERER.GET_RECENT_NOTES),
-  onRetriggerRequest: (callback) =>
-    ipcRenderer.on(IPC_MESSAGE.FROM_MAIN.RETRIGGER_SEARCH, callback),
+  onRetriggerRequest: (cb) =>
+    ipcRenderer.on(IPC_MESSAGE.FROM_MAIN.RETRIGGER_SEARCH, cb),
   sendNoteForEdit: (noteEditInfo) =>
     ipcRenderer.send(
       IPC_MESSAGE.FROM_RENDERER.SEND_NOTE_FOR_EDIT,
@@ -37,6 +37,8 @@ const SEARCH_ELECTRON_API: SearchElectronAPI = {
       IPC_MESSAGE.FROM_RENDERER.CONTEXT_MENU_RESULT_ITEM,
       noteEditInfo
     ),
+  onSetQuery: (cb) =>
+    ipcRenderer.on(IPC_MESSAGE.FROM_MAIN.SET_SEARCH_QUERY, cb),
 };
 
 const COMMON_ELECTRON_API = getCommonPreloadFunctions();

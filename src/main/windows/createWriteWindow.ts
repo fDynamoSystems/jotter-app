@@ -9,14 +9,20 @@ import {
   INITIAL_ON_TOP_LEVEL,
   INITIAL_ON_TOP_RELATIVE_LEVEL,
 } from "./constants";
-import { getActiveScreenBounds } from "./helpers";
+import { applyCreateWindowSettings, getActiveScreenBounds } from "./helpers";
+import { WindowCreateSettings } from "./types";
 
-const MIN_WINDOW_WIDTH = 420;
-const MIN_WINDOW_HEIGHT = 300;
-const WINDOW_WIDTH = 580;
-const WINDOW_HEIGHT = 420;
+export const WRITE_WINDOW_CONSTANTS = {
+  WINDOW_WIDTH: 420,
+  WINDOW_HEIGHT: 280,
+  MIN_WINDOW_WIDTH: 420,
+  MIN_WINDOW_HEIGHT: 280,
+} as const;
+
 const getWriteWindowInitConfig = (): BrowserWindowConstructorOptions => {
   const screenBounds = getActiveScreenBounds();
+  const { WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT } =
+    WRITE_WINDOW_CONSTANTS;
 
   return {
     x: Math.floor(screenBounds.x + (screenBounds.width - WINDOW_WIDTH) / 2),
@@ -49,7 +55,8 @@ const getWriteWindowInitConfig = (): BrowserWindowConstructorOptions => {
 };
 
 export async function createWriteWindow(
-  cb?: (createdWindow: BrowserWindow) => void
+  cb?: (createdWindow: BrowserWindow) => void,
+  createSettings?: WindowCreateSettings
 ) {
   const prodOptions = getWriteWindowInitConfig();
   const devOptions: BrowserWindowConstructorOptions = {
@@ -60,8 +67,14 @@ export async function createWriteWindow(
     },
   };
 
-  const constructorOptions =
+  let constructorOptions =
     process.env.NODE_ENV !== "production" ? devOptions : prodOptions;
+
+  if (createSettings)
+    constructorOptions = applyCreateWindowSettings(
+      createSettings,
+      constructorOptions
+    );
 
   // Create the write window
   const writeWindow = new BrowserWindow(constructorOptions);

@@ -1,27 +1,43 @@
 import SearcherService from "./services/SearcherService";
 import FilerService from "./services/FilerService";
-import { APP_SETTINGS, IPC_MESSAGE } from "@src/common/constants";
-import { BrowserWindow, Menu, app, dialog, globalShortcut } from "electron";
-import { NoteEditInfo } from "@renderer/common/types";
-import settings from "electron-settings";
+import { IPC_MESSAGE } from "@src/common/constants";
+import { BrowserWindow, Menu, dialog, shell, ipcMain } from "electron";
+import { NoteEditInfo } from "@src/common/types";
 import { ScanAllFilesResult, scanAllNoteFiles } from "./scanAllNoteFiles";
 import WindowManager from "./managers/WindowManager";
-
-const { ipcMain } = require("electron");
+import { ManagerList } from "./managers/BaseManager";
+import ModeManager from "./managers/ModeManager";
+import MenuManager from "./managers/MenuManager";
+import TrayManager from "./managers/TrayManager";
+import ElectronKeyboardManager from "./managers/ElectronKeyboardManager";
+import MemoryManager from "./managers/MemoryManager";
+import SettingsManager from "./managers/SettingsManager";
 
 export default class IpcHandlers {
   private searcherService: SearcherService;
   private filerService: FilerService;
   private windowManager: WindowManager;
+  private trayManager: TrayManager;
+  private menuManager: MenuManager;
+  private modeManager: ModeManager;
+  private electronKeyboardManager: ElectronKeyboardManager;
+  private memoryManager: MemoryManager;
+  private settingsManager: SettingsManager;
 
   constructor(
     searcher: SearcherService,
     filer: FilerService,
-    windowManager: WindowManager
+    managerList: ManagerList
   ) {
     this.searcherService = searcher;
     this.filerService = filer;
-    this.windowManager = windowManager;
+    this.windowManager = managerList[0];
+    this.trayManager = managerList[1];
+    this.menuManager = managerList[2];
+    this.modeManager = managerList[3];
+    this.electronKeyboardManager = managerList[4];
+    this.memoryManager = managerList[5];
+    this.settingsManager = managerList[6];
 
     // Two way handlers
     ipcMain.handle(IPC_MESSAGE.FROM_RENDERER.CREATE_NOTE, this.createNote);
@@ -45,16 +61,12 @@ export default class IpcHandlers {
       this.openDialogNotesFolderPath
     );
     ipcMain.handle(
-      IPC_MESSAGE.FROM_RENDERER.GET_MAIN_ENTRY_SHORTCUT,
-      this.getMainEntryShortcut
-    );
-    ipcMain.handle(
-      IPC_MESSAGE.FROM_RENDERER.INITIAL_SET_NOTES_FOLDER_PATH,
-      this.initialSetNotesFolderPath
-    );
-    ipcMain.handle(
       IPC_MESSAGE.FROM_RENDERER.CONFIRM_AND_DELETE_NOTE,
       this.confirmAndDeleteNote
+    );
+    ipcMain.handle(
+      IPC_MESSAGE.FROM_RENDERER.OPEN_NOTES_FOLDER_PATH,
+      this.openNotesFolderPath
     );
 
     // One way handlers
@@ -80,12 +92,12 @@ export default class IpcHandlers {
       this.openWriteWindowForNote
     );
     ipcMain.on(
-      IPC_MESSAGE.FROM_RENDERER.SET_NOTES_FOLDER_PATH,
-      this.setNotesFolderPath
+      IPC_MESSAGE.FROM_RENDERER.INITIAL_SET_NOTES_FOLDER_PATH,
+      this.initialSetNotesFolderPath
     );
     ipcMain.on(
-      IPC_MESSAGE.FROM_RENDERER.SET_MAIN_ENTRY_SHORTCUT,
-      this.setMainEntryShortcut
+      IPC_MESSAGE.FROM_RENDERER.SET_NOTES_FOLDER_PATH,
+      this.setNotesFolderPath
     );
     ipcMain.on(IPC_MESSAGE.FROM_RENDERER.CLOSE_INTRO, this.closeIntroWindow);
     ipcMain.on(
@@ -96,6 +108,7 @@ export default class IpcHandlers {
       IPC_MESSAGE.FROM_RENDERER.CLOSE_CURRENT_WINDOW,
       this.closeCurrentWindow
     );
+    ipcMain.on(IPC_MESSAGE.FROM_RENDERER.OPEN_SETTINGS, this.openSettings);
   }
 
   private createNote = (
@@ -155,6 +168,18 @@ export default class IpcHandlers {
     return toReturn;
   };
 
+  /**
+   * deleteNote is never called directly from renderer, maybe indirectly from an empty edit.
+   * When that happens, the wcId gets disassociated but we don't need to close the window or
+   * reset it since we can assume the window will be empty.
+   *
+   * If we want to implement some deleteNote feature straight from write window, will need
+   * to keep the above in mind.
+   *
+   * @param mainEvent
+   * @param noteEditInfo
+   * @returns
+   */
   private deleteNote = (
     mainEvent: Electron.IpcMainInvokeEvent,
     noteEditInfo: NoteEditInfo
@@ -162,20 +187,22 @@ export default class IpcHandlers {
     this.filerService.deleteNote(noteEditInfo.filepath);
     this.searcherService.deleteNote(noteEditInfo.searcherIndex);
     const wcId = mainEvent.sender.id;
-    this.windowManager.revertWriteWindowSearcherIndex(wcId);
+    this.windowManager.revertWriteWindowSearcherIndexUsingWcId(wcId);
 
     return null;
   };
 
   private queryNotes = (_event: Electron.IpcMainInvokeEvent, query: string) => {
+    this.memoryManager.saveSearchQuery(query);
     return this.searcherService.search(query);
   };
 
   private closeOverlay = () => {
-    app.quit();
+    this.modeManager.switchToClosedMode();
   };
 
   private getRecentNotes = () => {
+    this.memoryManager.saveSearchQuery("");
     return this.searcherService.getRecentNotes();
   };
 
@@ -200,7 +227,7 @@ export default class IpcHandlers {
     noteEditInfo: NoteEditInfo
   ) => {
     // Check if a write window is already open
-    const currWindow = this.windowManager.getBrowserViewFromSearcherIndex(
+    const currWindow = this.windowManager.getBrowserWindowFromSearcherIndex(
       noteEditInfo.searcherIndex
     );
     if (currWindow) {
@@ -229,7 +256,7 @@ export default class IpcHandlers {
     noteEditInfo: NoteEditInfo
   ) => {
     // Check if a write window is already open
-    const currWindow = this.windowManager.getBrowserViewFromSearcherIndex(
+    const currWindow = this.windowManager.getBrowserWindowFromSearcherIndex(
       noteEditInfo.searcherIndex
     );
     if (currWindow) {
@@ -237,36 +264,29 @@ export default class IpcHandlers {
       return;
     }
 
-    (await this.windowManager.openWriteWindowForNote(noteEditInfo))?.focus();
+    await this.windowManager.openWriteWindow({
+      noteEditInfo,
+      immediatelyShow: true,
+    });
   };
 
   private getKeyboardModifiersState = (_event: Electron.IpcMainInvokeEvent) => {
-    return this.windowManager.getKeyboardModifiersState();
+    return this.electronKeyboardManager.getKeyboardModifiersState();
   };
 
-  // Called only by intro window
+  /**
+   * initialSetNotesFolderPath is called by intro window.
+   */
   private initialSetNotesFolderPath = async (
     _event: Electron.IpcMainInvokeEvent,
     newPath: string
   ) => {
-    if (!newPath) return false;
-    const scanRes: ScanAllFilesResult = scanAllNoteFiles(newPath);
-    const { searcherDocs } = scanRes;
-    this.searcherService.setSearcherDocs(searcherDocs);
-    this.filerService.setNotesFolderPath(newPath);
-
-    await settings.set(APP_SETTINGS.NOTES_FOLDER_PATH, newPath);
-
-    // Initialize windows
-    await this.windowManager.initializeMainWindows();
-
-    const SHOW_DELAY = 50;
-    setTimeout(() => {
-      this.windowManager.showAllWindows();
-    }, SHOW_DELAY);
-    return true;
+    await this.setNotesFolderPath(_event, newPath);
   };
 
+  /**
+   * setNotesFolderPath is called by setting window in settings mode
+   */
   private setNotesFolderPath = async (
     _event: Electron.IpcMainInvokeEvent,
     newPath: string
@@ -276,14 +296,14 @@ export default class IpcHandlers {
     this.searcherService.setSearcherDocs(searcherDocs);
     this.filerService.setNotesFolderPath(newPath);
 
-    await settings.set(APP_SETTINGS.NOTES_FOLDER_PATH, newPath);
+    await this.settingsManager.setNotesFolderPath(newPath);
 
-    this.windowManager.closeAllWriteWindows();
-    this.retriggerSearch();
+    this.memoryManager.flushOpenModeMemory();
+    this.modeManager.switchToOpenMode();
   };
 
-  private getNotesFolderPath = (_event: Electron.IpcMainInvokeEvent) => {
-    return settings.get(APP_SETTINGS.NOTES_FOLDER_PATH);
+  private getNotesFolderPath = async (_event: Electron.IpcMainInvokeEvent) => {
+    return await this.settingsManager.getNotesFolderPath();
   };
 
   private openDialogNotesFolderPath = async (
@@ -308,27 +328,6 @@ export default class IpcHandlers {
       return null;
     }
     return dialogRes.filePaths[0];
-  };
-
-  private setMainEntryShortcut = async (
-    _event: Electron.IpcMainInvokeEvent,
-    newShortcut: string
-  ) => {
-    // Unregister old shortcut
-    const oldShortcut = (await this.getMainEntryShortcut()) as
-      | string
-      | undefined;
-    if (oldShortcut) globalShortcut.unregister(oldShortcut);
-
-    // Register new shortcut
-    settings.set(APP_SETTINGS.MAIN_ENTRY_SHORTCUT, newShortcut);
-    globalShortcut.register(newShortcut, () =>
-      this.windowManager.handleMainEntry()
-    );
-  };
-
-  private getMainEntryShortcut = async () => {
-    return settings.get(APP_SETTINGS.MAIN_ENTRY_SHORTCUT);
   };
 
   private closeIntroWindow = async () => {
@@ -388,5 +387,22 @@ export default class IpcHandlers {
 
   private closeCurrentWindow = () => {
     this.windowManager.closeCurrentWindow();
+  };
+
+  private openSettings = () => {
+    this.modeManager.switchToSettingsMode();
+  };
+
+  private openNotesFolderPath = async () => {
+    const pathToOpen = await this.settingsManager.getNotesFolderPath();
+    let errorMsg = "";
+
+    if (pathToOpen) {
+      errorMsg = await shell.openPath(pathToOpen);
+    } else {
+      errorMsg = "Notes folder path is not set!";
+    }
+
+    return { isError: !!errorMsg, errorMsg };
   };
 }

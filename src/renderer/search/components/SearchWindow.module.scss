@@ -15,19 +15,14 @@
   height: 100%;
 }
 
-.searchInputContainer {
-  width: 100%;
-
-  flex-shrink: 0;
+.searchInput {
+  margin-bottom: 2px;
 }
 
-.searchInput {
-  background-color: var(--color-accent);
-  resize: none;
-  padding: 4px 10px;
-  border-radius: 12px;
-  border: 1px solid var(--color-accent-2);
-  padding-left: 8px;
-  width: calc(100% - 14px);
-  margin-bottom: 4px;
+.toolBar {
+  margin-top: 4px;
+}
+
+.resultsList {
+  margin-top: 4px;
 }
