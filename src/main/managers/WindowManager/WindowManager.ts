@@ -8,6 +8,7 @@ import { createIntroWindow } from "../../windows/createIntroWindow";
 import BaseManager from "../BaseManager";
 import { MenuName } from "../MenuManager/MenuManager";
 import {
+  OpenIntroWindowSettings,
   OpenSearchWindowSettings,
   OpenSettingsWindowSettings,
   OpenWriteWindowSettings,
@@ -41,8 +42,19 @@ export default class WindowManager extends BaseManager {
   /*
   SECTION: Open new windows
   */
-  async openIntroWindow() {
-    return await createIntroWindow(this._onIntroWindowCreate);
+  async openIntroWindow(openSettings?: OpenIntroWindowSettings) {
+    const window = await createIntroWindow(
+      this._onIntroWindowCreate,
+      openSettings?.createSettings
+    );
+
+    if (openSettings?.immediatelyShow) {
+      setTimeout(() => {
+        this.showWindowByWc(window.webContents.id);
+      }, SHOW_DELAY);
+    }
+
+    return window;
   }
 
   async openSettingsWindow(openSettings?: OpenSettingsWindowSettings) {

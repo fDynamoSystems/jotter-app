@@ -32,16 +32,20 @@ export default function IntroWindow() {
 
   async function handleConfirm() {
     if (!notesFolderPath) return;
-    const success = await window.introElectronAPI.setNotesFolderPath(
-      notesFolderPath
-    );
-    if (success) window.introElectronAPI.closeIntroWindow();
+    await window.introElectronAPI.initialSetNotesFolderPath(notesFolderPath);
+  }
+
+  function handleClose() {
+    window.commonElectronAPI.closeCurrentWindow();
   }
 
   return (
     <div className={styles.bgContainer}>
       <div className={styles.container}>
-        <WindowTitle windowTitle="Welcome to Jotter!" />
+        <WindowTitle
+          windowTitle="👋 Welcome to Jotter!"
+          onClose={handleClose}
+        />
         <p>To start with, choose a folder to store your notes in.</p>
         <div
           onClick={handleChangeNotesFolderRequest}

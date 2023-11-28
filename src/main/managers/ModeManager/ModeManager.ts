@@ -14,6 +14,7 @@ export enum AppMode {
   CLOSED,
   OPEN,
   SETTINGS,
+  INTRO,
 }
 
 export type SwitchToOpenModeOptions = {
@@ -180,6 +181,7 @@ export default class ModeManager extends BaseManager {
       }
     }
 
+    // Show all windows in parallel
     await new Promise((resolve) =>
       setTimeout(async () => {
         await Promise.all(
@@ -208,6 +210,13 @@ export default class ModeManager extends BaseManager {
     });
   }
 
+  async switchToIntroMode() {
+    const shouldContinue = this._onModeSwitch(AppMode.INTRO);
+    if (!shouldContinue) return;
+
+    await this.windowManager.openIntroWindow({ immediatelyShow: true });
+  }
+
   // Called before any other logic in switch functions, returns boolean that denotes if logic should continue
   _onModeSwitch(newMode: AppMode) {
     if (this.isSwitching) return false;
@@ -217,19 +226,30 @@ export default class ModeManager extends BaseManager {
     const oldMode = this.appMode;
     const isSameMode = oldMode === newMode;
 
-    if (oldMode === AppMode.OPEN) {
-      if (!isSameMode) {
-        this._openModeCleanup();
-      } else {
-        shouldContinue = false;
-      }
-    } else if (oldMode === AppMode.SETTINGS) {
-      if (!isSameMode) {
-        this._closeWindowsCleanup();
-      } else {
-        shouldContinue = false;
-      }
+    switch (oldMode) {
+      case AppMode.OPEN:
+        if (!isSameMode) {
+          this._openModeCleanup();
+        } else {
+          shouldContinue = false;
+        }
+        break;
+      case AppMode.SETTINGS:
+        if (!isSameMode) {
+          this._closeWindowsCleanup();
+        } else {
+          shouldContinue = false;
+        }
+        break;
+      case AppMode.INTRO:
+        if (!isSameMode) {
+          this._closeWindowsCleanup();
+        } else {
+          shouldContinue = false;
+        }
+        break;
     }
+
     this.isSwitching = false;
     this.appMode = newMode;
     return shouldContinue;
@@ -255,5 +275,14 @@ export default class ModeManager extends BaseManager {
    */
   ensureOpenMode() {
     this.appMode = AppMode.OPEN;
+  }
+
+  /**
+   * SECTION: Misc functions
+   */
+  // OPPORTUNITY: There must be a more elegant way to do this
+  async shouldKeepInIntroMode(): Promise<boolean> {
+    const notesFolderPath = await this.settingsManager.getNotesFolderPath();
+    return !notesFolderPath;
   }
 }

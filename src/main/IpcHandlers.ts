@@ -63,10 +63,6 @@ export default class IpcHandlers {
       this.openDialogNotesFolderPath
     );
     ipcMain.handle(
-      IPC_MESSAGE.FROM_RENDERER.INITIAL_SET_NOTES_FOLDER_PATH,
-      this.initialSetNotesFolderPath
-    );
-    ipcMain.handle(
       IPC_MESSAGE.FROM_RENDERER.CONFIRM_AND_DELETE_NOTE,
       this.confirmAndDeleteNote
     );
@@ -105,6 +101,10 @@ export default class IpcHandlers {
     ipcMain.on(
       IPC_MESSAGE.FROM_RENDERER.CLOSE_CURRENT_WINDOW,
       this.closeCurrentWindow
+    );
+    ipcMain.on(
+      IPC_MESSAGE.FROM_RENDERER.INITIAL_SET_NOTES_FOLDER_PATH,
+      this.initialSetNotesFolderPath
     );
   }
 
@@ -271,20 +271,14 @@ export default class IpcHandlers {
     return this.electronKeyboardManager.getKeyboardModifiersState();
   };
 
-  // Called only by intro window
+  /**
+   * initialSetNotesFolderPath is called by intro window.
+   */
   private initialSetNotesFolderPath = async (
     _event: Electron.IpcMainInvokeEvent,
     newPath: string
   ) => {
-    if (!newPath) return false;
-    const scanRes: ScanAllFilesResult = scanAllNoteFiles(newPath);
-    const { searcherDocs } = scanRes;
-    this.searcherService.setSearcherDocs(searcherDocs);
-    this.filerService.setNotesFolderPath(newPath);
-
-    await this.settingsManager.setNotesFolderPath(newPath);
-
-    return true;
+    await this.setNotesFolderPath(_event, newPath);
   };
 
   /**

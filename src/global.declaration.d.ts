@@ -39,7 +39,7 @@ export type SettingsElectronAPI = {
 };
 
 export type IntroElectronAPI = {
-  setNotesFolderPath: (newPath: string) => Promise<boolean>;
+  initialSetNotesFolderPath: (newPath: string) => void;
   openDialogNotesFolderPath: () => Promise<string | undefined>;
   closeIntroWindow: () => void;
 };

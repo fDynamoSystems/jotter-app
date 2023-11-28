@@ -22,6 +22,7 @@ export type OpenSearchWindowSettings = {
 } & CommonWindowSettings;
 
 export type OpenSettingsWindowSettings = CommonWindowSettings;
+export type OpenIntroWindowSettings = CommonWindowSettings;
 
 export type WindowVisualDetails = {
   position: Coordinates;

@@ -110,39 +110,48 @@ async function registerGlobalKeyboardShortcuts() {
     await settingsManager.ensureOpenEntryShortcutIsInitialized();
 
   globalShortcut.register(openEntryShortcut, async () => {
-    if (!modeManager.isAppInOpenMode())
-      modeManager.switchToOpenMode({ writeAfterwards: true });
-    else windowManager.focusOrCreateLastFocusedWriteWindow();
+    if (await modeManager.shouldKeepInIntroMode()) {
+      modeManager.switchToIntroMode();
+    } else {
+      if (!modeManager.isAppInOpenMode())
+        modeManager.switchToOpenMode({ writeAfterwards: true });
+      else windowManager.focusOrCreateLastFocusedWriteWindow();
+    }
   });
 
   // Register search entry shortcut
   const searchEntryShortcut =
     await settingsManager.ensureSearchEntryShortcutIsInitialized();
   globalShortcut.register(searchEntryShortcut, async () => {
-    if (!modeManager.isAppInOpenMode())
-      modeManager.switchToOpenMode({ searchAfterwards: true });
-    else windowManager.focusOrCreateSearchWindow();
+    if (await modeManager.shouldKeepInIntroMode()) {
+      modeManager.switchToIntroMode();
+    } else {
+      if (!modeManager.isAppInOpenMode())
+        modeManager.switchToOpenMode({ searchAfterwards: true });
+      else windowManager.focusOrCreateSearchWindow();
+    }
   });
 }
 
 app.whenReady().then(async () => {
   // Uncomment to test beginner CX
-  // await settings.unset(APP_SETTINGS.NOTES_FOLDER_PATH);
+  await settingsManager.setNotesFolderPath("");
 
   app.setName("Jotter");
 
   // Set up IPC Handlers
   new IpcHandlers(searcherService, filerService, managerList);
 
-  // Build tray
-  await trayManager.initialize();
-
   const notesFolderPath = await settingsManager.getNotesFolderPath();
 
+  // Initialize tray
+  trayManager.initialize();
+
   if (!notesFolderPath) {
-    await windowManager.openIntroWindow();
+    await modeManager.switchToIntroMode();
   } else {
     initializeNotes(notesFolderPath);
+    await modeManager.switchToOpenMode();
   }
 
   registerGlobalKeyboardShortcuts();

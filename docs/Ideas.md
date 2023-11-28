@@ -32,6 +32,7 @@
   - Tags? White matter?
 - Paginate recent notes
 - Move select index based on context menu and clicks
+- Save select index in memory
 
 ## Organization
 

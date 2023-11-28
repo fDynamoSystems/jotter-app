@@ -14,14 +14,17 @@ export default class TrayManager extends BaseManager {
     this.quitApp = quitApp;
   }
 
-  async initialize() {
+  initialize() {
+    // Initialize tray with icon
     const iconPath = join(__dirname, "static/iconTemplate.png");
     const icon = nativeImage.createFromPath(iconPath).resize({
       height: 16,
       width: 16,
     });
     icon.setTemplateImage(true);
+    this.tray = new Tray(icon);
 
+    // Define menu for tray
     const menu = new Menu();
     menu.append(
       new MenuItem({
@@ -60,6 +63,12 @@ export default class TrayManager extends BaseManager {
     menu.append(new MenuItem({ type: "separator" }));
     menu.append(
       new MenuItem({
+        label: "Quit app completely",
+        click: () => this.quitApp(),
+      })
+    );
+    menu.append(
+      new MenuItem({
         label: "Restart",
         click: () => {
           app.relaunch();
@@ -67,31 +76,50 @@ export default class TrayManager extends BaseManager {
         },
       })
     );
+    menu.append(new MenuItem({ type: "separator" }));
+    menu.append(new MenuItem({ label: "Development", enabled: false }));
     menu.append(
       new MenuItem({
-        label: "Quit app completely",
-        click: () => this.quitApp(),
+        label: "Open intro window",
+        click: () => {
+          this.modeManager.switchToIntroMode();
+        },
       })
     );
-    const tray = new Tray(icon);
 
-    tray.on("click", () => {
+    // Define listeners
+    this.tray.on("click", async () => {
+      // Intro behavior
+      if (await this.modeManager.shouldKeepInIntroMode()) {
+        if (this.modeManager.isAppInCloseMode())
+          this.modeManager.switchToIntroMode();
+        else {
+          this.modeManager.switchToClosedMode();
+        }
+
+        return;
+      }
+
+      // Default behavior
       if (this.modeManager.isAppInCloseMode())
         this.modeManager.switchToOpenMode();
       else {
         this.modeManager.switchToClosedMode();
-        tray.popUpContextMenu(menu);
+        this.tray.popUpContextMenu(menu);
       }
     });
 
-    tray.on("right-click", () => {
+    this.tray.on("right-click", async () => {
+      // Intro behavior
+      if (await this.modeManager.shouldKeepInIntroMode()) {
+        return;
+      }
+
+      // Default behavior
       if (!this.modeManager.isAppInCloseMode())
         this.modeManager.switchToClosedMode();
-      tray.popUpContextMenu(menu);
+      this.tray.popUpContextMenu(menu);
     });
-
-    this.tray = tray;
-    return tray;
   }
 
   getTrayBounds() {
