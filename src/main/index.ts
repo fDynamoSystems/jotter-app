@@ -135,7 +135,7 @@ async function registerGlobalKeyboardShortcuts() {
 
 app.whenReady().then(async () => {
   // Uncomment to test beginner CX
-  await settingsManager.setNotesFolderPath("");
+  // await settingsManager.setNotesFolderPath("");
 
   app.setName("Jotter");
 

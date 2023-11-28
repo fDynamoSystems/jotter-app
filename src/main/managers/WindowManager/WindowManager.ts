@@ -15,6 +15,7 @@ import {
   WindowType,
 } from "./types";
 import { SHOW_DELAY } from "@main/common/constants";
+import { AppMode } from "../ModeManager/ModeManager";
 
 /*
 WINDOW MANAGER handles most window operations, e.g opening, closing, and tracking windows.
@@ -202,6 +203,14 @@ export default class WindowManager extends BaseManager {
 
     createdWindow.on("close", () => {
       this.settingsWindow = null;
+      const modeHistory = this.modeManager.getModeHistory();
+      const lastIndex = modeHistory.length - 1;
+      if (
+        modeHistory[lastIndex] === AppMode.OPEN ||
+        modeHistory[lastIndex - 1] === AppMode.OPEN
+      ) {
+        this.modeManager.switchToOpenMode();
+      }
       this._onCommonWindowClose(createdWindow);
     });
 

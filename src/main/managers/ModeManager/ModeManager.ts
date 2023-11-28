@@ -24,6 +24,7 @@ export type SwitchToOpenModeOptions = {
 };
 export default class ModeManager extends BaseManager {
   private appMode: AppMode = AppMode.CLOSED;
+  private modeHistory: AppMode[] = []; // Contains history of appModes up until current appMode (exclusive)
   private isSwitching: boolean = false;
 
   constructor() {
@@ -251,7 +252,11 @@ export default class ModeManager extends BaseManager {
     }
 
     this.isSwitching = false;
-    this.appMode = newMode;
+
+    if (shouldContinue) {
+      this.modeHistory.push(this.appMode);
+      this.appMode = newMode;
+    }
     return shouldContinue;
   }
 
@@ -284,5 +289,9 @@ export default class ModeManager extends BaseManager {
   async shouldKeepInIntroMode(): Promise<boolean> {
     const notesFolderPath = await this.settingsManager.getNotesFolderPath();
     return !notesFolderPath;
+  }
+
+  getModeHistory() {
+    return this.modeHistory;
   }
 }
