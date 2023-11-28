@@ -1,7 +1,7 @@
 import SearcherService from "./services/SearcherService";
 import FilerService from "./services/FilerService";
 import { IPC_MESSAGE } from "@src/common/constants";
-import { BrowserWindow, Menu, app, dialog } from "electron";
+import { BrowserWindow, Menu, dialog, shell, ipcMain } from "electron";
 import { NoteEditInfo } from "@src/common/types";
 import { ScanAllFilesResult, scanAllNoteFiles } from "./scanAllNoteFiles";
 import WindowManager from "./managers/WindowManager";
@@ -12,8 +12,6 @@ import TrayManager from "./managers/TrayManager";
 import ElectronKeyboardManager from "./managers/ElectronKeyboardManager";
 import MemoryManager from "./managers/MemoryManager";
 import SettingsManager from "./managers/SettingsManager";
-
-const { ipcMain } = require("electron");
 
 export default class IpcHandlers {
   private searcherService: SearcherService;
@@ -66,6 +64,10 @@ export default class IpcHandlers {
       IPC_MESSAGE.FROM_RENDERER.CONFIRM_AND_DELETE_NOTE,
       this.confirmAndDeleteNote
     );
+    ipcMain.handle(
+      IPC_MESSAGE.FROM_RENDERER.OPEN_NOTES_FOLDER_PATH,
+      this.openNotesFolderPath
+    );
 
     // One way handlers
     ipcMain.on(IPC_MESSAGE.FROM_RENDERER.CLOSE_OVERLAY, this.closeOverlay);
@@ -90,6 +92,10 @@ export default class IpcHandlers {
       this.openWriteWindowForNote
     );
     ipcMain.on(
+      IPC_MESSAGE.FROM_RENDERER.INITIAL_SET_NOTES_FOLDER_PATH,
+      this.initialSetNotesFolderPath
+    );
+    ipcMain.on(
       IPC_MESSAGE.FROM_RENDERER.SET_NOTES_FOLDER_PATH,
       this.setNotesFolderPath
     );
@@ -102,10 +108,7 @@ export default class IpcHandlers {
       IPC_MESSAGE.FROM_RENDERER.CLOSE_CURRENT_WINDOW,
       this.closeCurrentWindow
     );
-    ipcMain.on(
-      IPC_MESSAGE.FROM_RENDERER.INITIAL_SET_NOTES_FOLDER_PATH,
-      this.initialSetNotesFolderPath
-    );
+    ipcMain.on(IPC_MESSAGE.FROM_RENDERER.OPEN_SETTINGS, this.openSettings);
   }
 
   private createNote = (
@@ -195,7 +198,7 @@ export default class IpcHandlers {
   };
 
   private closeOverlay = () => {
-    app.quit();
+    this.modeManager.switchToClosedMode();
   };
 
   private getRecentNotes = () => {
@@ -384,5 +387,22 @@ export default class IpcHandlers {
 
   private closeCurrentWindow = () => {
     this.windowManager.closeCurrentWindow();
+  };
+
+  private openSettings = () => {
+    this.modeManager.switchToSettingsMode();
+  };
+
+  private openNotesFolderPath = async () => {
+    const pathToOpen = await this.settingsManager.getNotesFolderPath();
+    let errorMsg = "";
+
+    if (pathToOpen) {
+      errorMsg = await shell.openPath(pathToOpen);
+    } else {
+      errorMsg = "Notes folder path is not set!";
+    }
+
+    return { isError: !!errorMsg, errorMsg };
   };
 }

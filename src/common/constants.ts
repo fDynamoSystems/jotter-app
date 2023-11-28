@@ -20,6 +20,8 @@ export const IPC_MESSAGE = {
     CONFIRM_AND_DELETE_NOTE: "confirm-and-delete-note",
     CONTEXT_MENU_RESULT_ITEM: "context-menu-result-item",
     CLOSE_CURRENT_WINDOW: "close-current-window",
+    OPEN_SETTINGS: "open-settings",
+    OPEN_NOTES_FOLDER_PATH: "open-notes-folder-path",
   },
   FROM_MAIN: {
     WINDOW_FOCUSED: "window-focused",

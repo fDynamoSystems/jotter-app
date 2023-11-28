@@ -6,12 +6,14 @@ type ToolBarProps = {
 };
 
 export default function ToolBar(props: ToolBarProps) {
-  function handleOpenNotesFolder() {
-    console.warn("To implement");
+  function handleOpenSettings() {
+    window.commonElectronAPI.openSettings();
   }
 
-  function handleOpenSettings() {
-    console.warn("To implement");
+  async function handleOpenNotesFolder() {
+    const openRes = await window.commonElectronAPI.openNotesFolderPath();
+    if (!openRes.isError) window.commonElectronAPI.closeOverlay();
+    // TODO: Handle errors
   }
 
   return (

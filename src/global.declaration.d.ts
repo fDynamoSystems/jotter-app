@@ -8,6 +8,8 @@ export type CommonElectronAPI = {
   closeOverlay: () => void;
   getKeyboardModifiersState: () => Promise<KeyboardModifiersState>;
   closeCurrentWindow: () => void;
+  openSettings: () => void;
+  openNotesFolderPath: () => Promise<{ isError: boolean; errorMsg: string }>;
 };
 
 export type WriteElectronAPI = {

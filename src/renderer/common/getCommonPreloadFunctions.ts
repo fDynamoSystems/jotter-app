@@ -21,6 +21,10 @@ const getCommonPreloadFunctions = (): CommonElectronAPI => {
       ),
     closeCurrentWindow: () =>
       ipcRenderer.send(IPC_MESSAGE.FROM_RENDERER.CLOSE_CURRENT_WINDOW),
+    openSettings: () =>
+      ipcRenderer.send(IPC_MESSAGE.FROM_RENDERER.OPEN_SETTINGS),
+    openNotesFolderPath: () =>
+      ipcRenderer.invoke(IPC_MESSAGE.FROM_RENDERER.OPEN_NOTES_FOLDER_PATH),
   };
 };
 
