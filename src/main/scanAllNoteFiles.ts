@@ -1,7 +1,7 @@
-import { readdirSync, readFileSync, statSync } from "fs";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { SearcherDoc } from "./services/SearcherService";
-import { NOTE_FILE_EXTENSION } from "./common/constants";
+import { NOTE_FILE_EXTENSION, STARTER_NOTE } from "./common/constants";
 
 export type ScanAllFilesResult = {
   searcherDocs: SearcherDoc[];
@@ -29,7 +29,23 @@ export function scanAllNoteFiles(folderpath: string): ScanAllFilesResult {
     });
   };
 
+  // If we add folders, we need to modify this function to call itself for folders
   readFolder(folderpath);
+
+  // Add starter note
+  if (!searcherDocs.length) {
+    // Write note
+    if (folderpath[folderpath.length - 1] !== "/") folderpath += "/";
+    const filepath = folderpath + "Jotter welcome note.md";
+    writeFileSync(filepath, STARTER_NOTE);
+    const modifiedAt = statSync(filepath).mtime.getTime() / 1000;
+    searcherDocs.push({
+      content: STARTER_NOTE,
+      filepath,
+      modifiedAt,
+      searcherIndex: searcherDocs.length,
+    });
+  }
 
   return {
     searcherDocs,

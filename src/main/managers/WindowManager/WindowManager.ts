@@ -388,9 +388,9 @@ export default class WindowManager extends BaseManager {
         this.wcToSearcherIndexMap[parseInt(key)] === searcherIndex
     );
 
-    if (wcId !== undefined) {
+    if (wcId !== undefined && wcId !== null) {
       const browserWindow = this.wcToBrowserWindowMap[parseInt(wcId)];
-      browserWindow.close();
+      browserWindow?.close();
     }
   }
 
