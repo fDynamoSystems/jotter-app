@@ -55,10 +55,14 @@ export default function SettingsWindow() {
     setInitialNotesFolderPath(notesFolderPath);
   }
 
+  function handleClose() {
+    window.commonElectronAPI.closeCurrentWindow();
+  }
+
   return (
     <div className={styles.bgContainer}>
       <div className={styles.container}>
-        <WindowTitle windowTitle="⚙️ Settings" />
+        <WindowTitle windowTitle="⚙️ Settings" onClose={handleClose} />
         <div className={styles.settingBlock}>
           <h1>Notes folder</h1>
           <p>Folder where your notes are stored</p>
