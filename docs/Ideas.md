@@ -3,7 +3,7 @@
 ## Note writing experience
 
 - Add VIM bindings
-- Markdown?
+- Reintroduce markdown editing
 - Add tables
 - Update app if note file edited
   - Would need some efficient way to scan note files when the overlay is opened
@@ -15,6 +15,7 @@
 - Hide or minimize search window
 - Multi display compatibility
 - Search / cmd + f in write window
+- Follow tabs around if previous line has tabs
 
 ## Search experience
 
