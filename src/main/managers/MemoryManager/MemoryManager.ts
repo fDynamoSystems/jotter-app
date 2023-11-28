@@ -73,7 +73,10 @@ export default class MemoryManager extends BaseManager {
     const windowDetailsList: WindowDetailsInternal[] = cleanFocusHistory.map(
       (wcId) => {
         const windowType = wcToWindowTypeMap[wcId];
-        const searcherIndex: number | null = wcToSearcherIndexMap[wcId] || null;
+        const searcherIndex: number | null =
+          typeof wcToSearcherIndexMap[wcId] === "number"
+            ? wcToSearcherIndexMap[wcId]
+            : null;
         const [x, y] = wcToWindowPositionMap[wcId];
         const [width, height] = wcToWindowSizeMap[wcId];
         const toAdd: WindowDetailsInternal = {
@@ -102,7 +105,7 @@ export default class MemoryManager extends BaseManager {
       const windowDetailsList: WindowDetailsExternal[] =
         this.openModeMemory.windowDetailsList.map((internalDetails) => {
           let noteEditInfo: NoteEditInfo | null = null;
-          if (internalDetails.searcherIndex) {
+          if (internalDetails.searcherIndex !== null) {
             const rawNote = this.searcherService.getNote(
               internalDetails.searcherIndex
             );
