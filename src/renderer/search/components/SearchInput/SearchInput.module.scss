@@ -8,10 +8,6 @@
   display: grid;
   grid-template-columns: auto 24px;
   height: 36px;
-
-  &:focus-within {
-    border-color: var(--color-primary);
-  }
 }
 
 .searchInput {
