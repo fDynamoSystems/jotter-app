@@ -10,17 +10,8 @@ export default function ToolBar(props: ToolBarProps) {
     window.commonElectronAPI.openSettings();
   }
 
-  async function handleOpenNotesFolder() {
-    const openRes = await window.commonElectronAPI.openNotesFolderPath();
-    if (!openRes.isError) window.commonElectronAPI.closeOverlay();
-    // TODO: Handle errors
-  }
-
   return (
     <div className={styles.container + ` ${props.className || ""}`}>
-      <button className={styles.buttonIcon} onClick={handleOpenNotesFolder}>
-        📁
-      </button>
       <button className={styles.buttonIcon} onClick={handleOpenSettings}>
         ⚙️
       </button>

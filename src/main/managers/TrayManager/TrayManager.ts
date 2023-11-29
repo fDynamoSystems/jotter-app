@@ -1,4 +1,4 @@
-import { Menu, MenuItem, Tray, app, nativeImage } from "electron";
+import { Menu, MenuItem, Tray, app, nativeImage, shell } from "electron";
 import { join } from "path";
 import BaseManager from "../BaseManager";
 
@@ -57,6 +57,23 @@ export default class TrayManager extends BaseManager {
         label: "Settings",
         click: () => {
           this.modeManager.switchToSettingsMode();
+        },
+      })
+    );
+    menu.append(
+      new MenuItem({
+        label: "Open notes folder",
+        click: async () => {
+          const pathToOpen = await this.settingsManager.getNotesFolderPath();
+          let errorMsg = "";
+
+          if (pathToOpen) {
+            errorMsg = await shell.openPath(pathToOpen);
+          }
+
+          if (errorMsg) {
+            // TODO: Handle errors
+          }
         },
       })
     );
