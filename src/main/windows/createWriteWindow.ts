@@ -14,9 +14,9 @@ import { WindowCreateSettings } from "./types";
 
 export const WRITE_WINDOW_CONSTANTS = {
   WINDOW_WIDTH: 420,
-  WINDOW_HEIGHT: 280,
+  WINDOW_HEIGHT: 300,
   MIN_WINDOW_WIDTH: 420,
-  MIN_WINDOW_HEIGHT: 280,
+  MIN_WINDOW_HEIGHT: 300,
 } as const;
 
 const getWriteWindowInitConfig = (): BrowserWindowConstructorOptions => {

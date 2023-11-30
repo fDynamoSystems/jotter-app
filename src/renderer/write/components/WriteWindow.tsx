@@ -121,6 +121,10 @@ export default function WriteWindow() {
     <div className={styles.bgContainer}>
       <div className={styles.container}>
         <WindowTitle windowTitle={"✏️ Jotter"} onClose={handleClose} />
+        <div className={styles.toolBar}>
+          <button className={styles.buttonToolIcon}>⬅️</button>
+          <button className={styles.buttonToolIcon}>➡️</button>
+        </div>
         <textarea
           className={styles.textArea}
           value={writeVal}
