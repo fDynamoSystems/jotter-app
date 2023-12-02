@@ -10,7 +10,6 @@ import ModeManager from "./managers/ModeManager";
 import MenuManager from "./managers/MenuManager";
 import TrayManager from "./managers/TrayManager";
 import ElectronKeyboardManager from "./managers/ElectronKeyboardManager";
-import MemoryManager from "./managers/MemoryManager";
 import SettingsManager from "./managers/SettingsManager";
 
 export default class IpcHandlers {
@@ -21,7 +20,6 @@ export default class IpcHandlers {
   private menuManager: MenuManager;
   private modeManager: ModeManager;
   private electronKeyboardManager: ElectronKeyboardManager;
-  private memoryManager: MemoryManager;
   private settingsManager: SettingsManager;
 
   constructor(
@@ -36,8 +34,7 @@ export default class IpcHandlers {
     this.menuManager = managerList[2];
     this.modeManager = managerList[3];
     this.electronKeyboardManager = managerList[4];
-    this.memoryManager = managerList[5];
-    this.settingsManager = managerList[6];
+    this.settingsManager = managerList[5];
 
     // Two way handlers
     ipcMain.handle(IPC_MESSAGE.FROM_RENDERER.CREATE_NOTE, this.createNote);
@@ -193,7 +190,6 @@ export default class IpcHandlers {
   };
 
   private queryNotes = (_event: Electron.IpcMainInvokeEvent, query: string) => {
-    this.memoryManager.saveSearchQuery(query);
     return this.searcherService.search(query);
   };
 
@@ -202,7 +198,6 @@ export default class IpcHandlers {
   };
 
   private getRecentNotes = () => {
-    this.memoryManager.saveSearchQuery("");
     return this.searcherService.getRecentNotes();
   };
 
@@ -298,7 +293,7 @@ export default class IpcHandlers {
 
     await this.settingsManager.setNotesFolderPath(newPath);
 
-    this.memoryManager.flushOpenModeMemory();
+    // TODO: Reset open mode
     this.modeManager.switchToOpenMode();
   };
 

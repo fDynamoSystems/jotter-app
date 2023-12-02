@@ -148,16 +148,10 @@ export default class WindowManager extends BaseManager {
 
   _onCommonWindowFocus = (createdWindow: BrowserWindow) => {
     const wcId = createdWindow.webContents.id;
-
     createdWindow.webContents.send(IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED, true);
 
     // Add to focus history
-    const shouldUpdateFocusHistory =
-      !this.focusHistory.length ||
-      (this.focusHistory.length &&
-        this.focusHistory[this.focusHistory.length - 1] !== wcId);
-
-    if (shouldUpdateFocusHistory) this.focusHistory.push(wcId);
+    this.addToFocusHistory(wcId);
   };
 
   _onCommonWindowBlur = (createdWindow: BrowserWindow) => {
@@ -373,6 +367,10 @@ export default class WindowManager extends BaseManager {
     return this.wcToBrowserWindowMap[wcId] || null;
   }
 
+  getWcIdWindowType(wcId: number) {
+    return this.wcToWindowTypeMap[wcId];
+  }
+
   /*
   SECTION: Close windows
   */
@@ -413,6 +411,16 @@ export default class WindowManager extends BaseManager {
     if (searchWindow) searchWindow.close();
   }
 
+  closeSettingsWindow() {
+    const settingsWindow = this.getSettingsWindow();
+    if (settingsWindow) settingsWindow.close();
+  }
+
+  closeIntroWindow() {
+    const introWindow = this.getIntroWindow();
+    if (introWindow) introWindow.close();
+  }
+
   /*
   SECTION: Window assignment and registration
   */
@@ -434,9 +442,7 @@ export default class WindowManager extends BaseManager {
     if (this.wcToSearcherIndexMap[wcId]) delete this.wcToSearcherIndexMap[wcId];
 
     // Remove from focus history
-    this.focusHistory = this.focusHistory.filter(
-      (otherIds) => otherIds !== wcId
-    );
+    this.removeFromFocusHistory(wcId);
   }
 
   /*
@@ -471,8 +477,11 @@ export default class WindowManager extends BaseManager {
 
   focusOrCreateSearchWindow() {
     const currWindow = this.getSearchWindow();
-    if (currWindow) currWindow.focus();
-    else this.openSearchWindow({ immediatelyShow: true });
+    if (currWindow) {
+      if (currWindow.isVisible()) {
+        currWindow.focus();
+      } else currWindow.show();
+    } else this.openSearchWindow({ immediatelyShow: true });
   }
 
   focusWriteWindow(wcId: number) {
@@ -497,8 +506,79 @@ export default class WindowManager extends BaseManager {
   /**
    * SECTION: Show windows
    */
-  showWindowByWc(wcId: number) {
-    this.getWindowByWc(wcId)?.show();
+  showWindowByWc(wcId: number, focus?: boolean) {
+    const window = this.getWindowByWc(wcId);
+    if (window) {
+      window.show();
+      if (focus) window.focus();
+    }
+  }
+
+  /**
+   * SECTION: Hide windows
+   */
+  hideAllWindows() {
+    const windows = this.getAllOpenWindowsList();
+    windows.forEach((window) => {
+      window.hide();
+    });
+  }
+
+  /**
+   * SECTION: Focus history
+   */
+
+  getFocusHistory() {
+    return this.focusHistory;
+  }
+
+  setFocusHistory(newHistory: number[]) {
+    this.focusHistory = newHistory;
+  }
+
+  addToFocusHistory(wcId: number) {
+    const shouldUpdateFocusHistory =
+      !this.focusHistory.length ||
+      (this.focusHistory.length &&
+        this.focusHistory[this.focusHistory.length - 1] != wcId);
+
+    if (shouldUpdateFocusHistory) {
+      this.focusHistory.push(wcId);
+    }
+  }
+
+  removeFromFocusHistory(wcIdToRemove: number) {
+    if (!this.focusHistory.length) return [];
+    const newHistory: number[] = [];
+    let prevWcId: number | null = null;
+
+    for (let i = 0; i < this.focusHistory.length; i++) {
+      const currWcId = this.focusHistory[i];
+
+      const isWcToRemove = currWcId == wcIdToRemove;
+      const isSameAsPrevious = currWcId === prevWcId;
+
+      if (!isWcToRemove && !isSameAsPrevious) {
+        newHistory.push(currWcId);
+      }
+      // Want to keep same currId if it is wc to remove
+      if (!isWcToRemove) prevWcId = currWcId;
+    }
+    this.focusHistory = newHistory;
+  }
+
+  getFocusHistoryWithoutDuplicates(): number[] {
+    if (!this.focusHistory.length) return [];
+    const toReturn: number[] = [];
+    const duplicateSet = new Set<number>();
+    for (let i = this.focusHistory.length - 1; i >= 0; i--) {
+      const wcId = this.focusHistory[i];
+      if (!duplicateSet.has(wcId)) {
+        toReturn.unshift(wcId);
+        duplicateSet.add(wcId);
+      }
+    }
+    return toReturn;
   }
 
   /*
@@ -520,31 +600,6 @@ export default class WindowManager extends BaseManager {
   allowClosureOfAllWindows() {
     const windows = this.getAllOpenWindowsList();
     windows.forEach((window) => window.setClosable(true));
-  }
-
-  getFocusHistory() {
-    return this.focusHistory;
-  }
-
-  /**
-   * Clean focus history removes any duplicates for rendering purposes, biasing later entries of duplicates
-   */
-  getCleanFocusHistory() {
-    if (!this.focusHistory.length) return [];
-    const toReturn: number[] = [];
-    const duplicateSet = new Set<number>();
-    for (let i = this.focusHistory.length - 1; i >= 0; i--) {
-      const wcId = this.focusHistory[i];
-      if (!duplicateSet.has(wcId)) {
-        toReturn.unshift(wcId);
-        duplicateSet.add(wcId);
-      }
-    }
-    return toReturn;
-  }
-
-  setFocusHistory(newHistory: number[]) {
-    this.focusHistory = newHistory;
   }
 
   getAllMaps() {

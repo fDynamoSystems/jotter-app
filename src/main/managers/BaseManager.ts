@@ -1,5 +1,4 @@
 import ElectronKeyboardManager from "./ElectronKeyboardManager";
-import MemoryManager from "./MemoryManager";
 import MenuManager from "./MenuManager";
 import ModeManager from "./ModeManager";
 import SettingsManager from "./SettingsManager";
@@ -12,7 +11,6 @@ export type ManagerList = [
   MenuManager,
   ModeManager,
   ElectronKeyboardManager,
-  MemoryManager,
   SettingsManager
 ];
 export default class BaseManager {
@@ -22,7 +20,6 @@ export default class BaseManager {
   protected menuManager!: MenuManager;
   protected modeManager!: ModeManager;
   protected electronKeyboardManager!: ElectronKeyboardManager;
-  protected memoryManager!: MemoryManager;
   protected settingsManager!: SettingsManager;
 
   injectManagers(managerList: ManagerList) {
@@ -31,8 +28,7 @@ export default class BaseManager {
     this.menuManager = managerList[2];
     this.modeManager = managerList[3];
     this.electronKeyboardManager = managerList[4];
-    this.memoryManager = managerList[5];
-    this.settingsManager = managerList[6];
+    this.settingsManager = managerList[5];
     this.isManagersInjected = true;
   }
 }
