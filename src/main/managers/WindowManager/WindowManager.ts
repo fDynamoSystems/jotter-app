@@ -346,9 +346,7 @@ export default class WindowManager extends BaseManager {
     return null;
   }
 
-  getBrowserWindowFromSearcherIndex(
-    searcherIndex: number
-  ): BrowserWindow | null {
+  getWriteWindowFromSearcherIndex(searcherIndex: number): BrowserWindow | null {
     let existingWcId: number | null = null;
     Object.entries(this.wcToSearcherIndexMap).forEach((item) => {
       const [key, val] = item;
@@ -361,6 +359,21 @@ export default class WindowManager extends BaseManager {
       return null;
     }
     return this.wcToBrowserWindowMap[existingWcId] || null;
+  }
+
+  getAllWriteWindowsFromSearcherIndex(searcherIndex: number): BrowserWindow[] {
+    const toReturn: BrowserWindow[] = [];
+    Object.entries(this.wcToSearcherIndexMap).forEach((item) => {
+      const [key, val] = item;
+      if (val === searcherIndex) {
+        const existingWcId = parseInt(key);
+        const window = this.wcToBrowserWindowMap[existingWcId];
+        if (window) toReturn.push(window);
+        return;
+      }
+    });
+
+    return toReturn;
   }
 
   getWindowByWc(wcId: number) {
@@ -380,16 +393,11 @@ export default class WindowManager extends BaseManager {
     );
   }
 
-  closeWriteWindowBySearcherIndex(searcherIndex: number) {
-    const wcId = Object.keys(this.wcToSearcherIndexMap).find(
-      (key: string) =>
-        this.wcToSearcherIndexMap[parseInt(key)] === searcherIndex
-    );
-
-    if (wcId !== undefined && wcId !== null) {
-      const browserWindow = this.wcToBrowserWindowMap[parseInt(wcId)];
-      browserWindow?.close();
-    }
+  closeAllWriteWindowsBySearcherIndex(searcherIndex: number) {
+    const windows = this.getAllWriteWindowsFromSearcherIndex(searcherIndex);
+    windows.forEach((window) => {
+      window.close();
+    });
   }
 
   closeCurrentWindow() {

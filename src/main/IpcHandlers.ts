@@ -222,7 +222,7 @@ export default class IpcHandlers {
     noteEditInfo: NoteEditInfo
   ) => {
     // Check if a write window is already open
-    const currWindow = this.windowManager.getBrowserWindowFromSearcherIndex(
+    const currWindow = this.windowManager.getWriteWindowFromSearcherIndex(
       noteEditInfo.searcherIndex
     );
     if (currWindow) {
@@ -251,7 +251,7 @@ export default class IpcHandlers {
     noteEditInfo: NoteEditInfo
   ) => {
     // Check if a write window is already open
-    const currWindow = this.windowManager.getBrowserWindowFromSearcherIndex(
+    const currWindow = this.windowManager.getWriteWindowFromSearcherIndex(
       noteEditInfo.searcherIndex
     );
     if (currWindow) {
@@ -343,7 +343,7 @@ export default class IpcHandlers {
     if (shouldDelete) {
       this.filerService.deleteNote(noteEditInfo.filepath);
       this.searcherService.deleteNote(noteEditInfo.searcherIndex);
-      this.windowManager.closeWriteWindowBySearcherIndex(
+      this.windowManager.closeAllWriteWindowsBySearcherIndex(
         noteEditInfo.searcherIndex
       );
     }
