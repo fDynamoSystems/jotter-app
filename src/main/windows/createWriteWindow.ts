@@ -1,11 +1,7 @@
-import { BG_COLOR_DARK, BG_COLOR_LIGHT } from "@src/common/constants";
-import {
-  BrowserWindow,
-  BrowserWindowConstructorOptions,
-  nativeTheme,
-} from "electron";
+import { BrowserWindow, BrowserWindowConstructorOptions } from "electron";
 import { join } from "path";
 import {
+  COMMON_WINDOW_SETTINGS,
   INITIAL_ON_TOP_LEVEL,
   INITIAL_ON_TOP_RELATIVE_LEVEL,
 } from "./constants";
@@ -32,25 +28,13 @@ const getWriteWindowInitConfig = (): BrowserWindowConstructorOptions => {
     maxHeight: Math.floor(0.8 * screenBounds.height),
     width: WINDOW_WIDTH,
     height: WINDOW_HEIGHT,
-    frame: false,
-    resizable: true,
-    transparent: false,
-    movable: true,
-    show: false,
-    skipTaskbar: true,
-    focusable: true,
-    closable: true,
-    backgroundColor: nativeTheme.shouldUseDarkColors
-      ? BG_COLOR_DARK
-      : BG_COLOR_LIGHT,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
       devTools: false,
       preload: join(__dirname, "renderer/write-preload.bundle.js"),
     },
-    maximizable: false,
-    minimizable: false,
+    ...COMMON_WINDOW_SETTINGS,
   };
 };
 

@@ -1,11 +1,7 @@
-import { BG_COLOR_DARK, BG_COLOR_LIGHT } from "@src/common/constants";
-import {
-  BrowserWindow,
-  BrowserWindowConstructorOptions,
-  nativeTheme,
-} from "electron";
+import { BrowserWindow, BrowserWindowConstructorOptions } from "electron";
 import { join } from "path";
 import {
+  COMMON_WINDOW_SETTINGS,
   INITIAL_ON_TOP_LEVEL,
   INITIAL_ON_TOP_RELATIVE_LEVEL,
 } from "./constants";
@@ -23,26 +19,13 @@ const getSettingsWindowInitConfig = (): BrowserWindowConstructorOptions => {
     y: Math.floor(screenBounds.y + screenBounds.height * 0.15),
     width: WINDOW_WIDTH,
     height: WINDOW_HEIGHT,
-    frame: false,
-    resizable: false,
-    alwaysOnTop: true,
-    transparent: false,
-    movable: true,
-    show: false,
-    skipTaskbar: false,
-    focusable: true,
-    closable: true,
-    backgroundColor: nativeTheme.shouldUseDarkColors
-      ? BG_COLOR_DARK
-      : BG_COLOR_LIGHT,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
       devTools: false,
       preload: join(__dirname, "renderer/settings-preload.bundle.js"),
     },
-    maximizable: false,
-    minimizable: false,
+    ...COMMON_WINDOW_SETTINGS,
   };
 };
 
