@@ -3,6 +3,7 @@ import SearcherService from "@main/services/SearcherService";
 import { WindowType } from "../WindowManager/types";
 import { SHOW_DELAY } from "@main/common/constants";
 import { NoteEditInfo } from "@src/common/types";
+import { app } from "electron";
 
 /*
 MODE MANAGER deals with the app's modes and works with other managers to show what is needed when modes change.
@@ -241,6 +242,7 @@ export default class ModeManager extends BaseManager {
 
   _openModeCleanup() {
     this.windowManager.hideAllWindows();
+    app.hide();
   }
 
   _settingsModeCleanup() {
