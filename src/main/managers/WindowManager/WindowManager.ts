@@ -509,6 +509,7 @@ export default class WindowManager extends BaseManager {
   showWindowByWc(wcId: number, focus?: boolean) {
     const window = this.getWindowByWc(wcId);
     if (window) {
+      window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
       window.show();
       if (focus) window.focus();
     }
@@ -521,6 +522,7 @@ export default class WindowManager extends BaseManager {
     const windows = this.getAllOpenWindowsList();
     windows.forEach((window) => {
       window.hide();
+      window.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: true }); // We do this to fix a full screen bug
     });
   }
 
