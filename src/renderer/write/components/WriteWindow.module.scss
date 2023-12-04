@@ -14,20 +14,6 @@
   height: 100%;
 }
 
-.toolBar {
-  .buttonToolIcon {
-    background: none;
-    border: none;
-    font-size: large;
-
-    &:not(:first-child) {
-      margin-left: 8px;
-    }
-  }
-
-  margin-bottom: 4px;
-}
-
 .textArea {
   width: 100%;
   height: 100%;

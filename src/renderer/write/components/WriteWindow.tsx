@@ -4,43 +4,43 @@ import "@renderer/common/styles/global.scss";
 import { SAVE_CHANGES_DELAY } from "../constants";
 import WindowTitle from "@renderer/common/components/WindowTitle";
 import { NoteEditInfo } from "@src/common/types";
+import type { Editor } from "codemirror";
+import NoteTakingForm from "./NoteTakingForm";
 
-const TAB_CHARACTER = "\t";
 export default function WriteWindow() {
   const [writeVal, setWriteVal] = useState<string>("");
-  const [textData, setTextData] = useState<{
-    caret: number;
-    target: (EventTarget & HTMLTextAreaElement) | null;
-  }>({ caret: -1, target: null }); // Store states for manipulations;
-
   const [noteEditInfo, setNoteEditInfo] = useState<NoteEditInfo | null>(null);
-
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const saveChangesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
 
+  const [shouldResetUndoHistory, setShouldResetUndoHistory] = useState(false);
+
+  const [noteTakingFormInstance, setNoteTakingFormInstance] =
+    useState<Editor | null>(null);
+
   useEffect(() => {
     window.writeElectronAPI.onNoteEditRequest((_event, noteToEdit) => {
       setNoteEditInfo(noteToEdit);
       setWriteVal(noteToEdit.content);
+      setShouldResetUndoHistory(true);
     });
-    window.commonElectronAPI.onWindowFocusChange((_event, newFocus) => {
-      if (newFocus) {
-        textAreaRef.current?.focus();
-      }
-    });
+    return () => {
+      window.writeElectronAPI.removeNoteEditRequestListener();
+    };
   }, []);
 
   useEffect(() => {
-    if (textData.caret >= 0) {
-      textData.target?.setSelectionRange(
-        textData.caret + TAB_CHARACTER.length,
-        textData.caret + TAB_CHARACTER.length
-      );
-    }
-  }, [textData, writeVal]);
+    window.commonElectronAPI.onWindowFocusChange((_event, newFocus) => {
+      if (newFocus) {
+        noteTakingFormInstance?.focus();
+      }
+    });
+    return () => {
+      window.commonElectronAPI.removeWindowFocusChangeListener();
+    };
+  }, [noteTakingFormInstance]);
 
   useEffect(() => {
     window.writeElectronAPI.onResetWriteWindowRequest(() => {
@@ -50,6 +50,7 @@ export default function WriteWindow() {
       }
       setNoteEditInfo(null);
       setWriteVal("");
+      setShouldResetUndoHistory(true);
     });
 
     return () => {
@@ -57,11 +58,15 @@ export default function WriteWindow() {
     };
   }, [writeVal, noteEditInfo]);
 
-  function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const newVal = e.target.value;
+  useEffect(() => {
+    if (shouldResetUndoHistory) {
+      noteTakingFormInstance?.clearHistory();
+      setShouldResetUndoHistory(false);
+    }
+  }, [shouldResetUndoHistory, noteTakingFormInstance]);
 
+  function handleChange(newVal: string) {
     setWriteVal(newVal);
-    setTextData({ caret: -1, target: e.target });
     // Don't save if new note and only whitespace
     // Kinda hacky, what if we just call delete here instead of
     // Having IPCHandler logic delete through edit?
@@ -98,40 +103,24 @@ export default function WriteWindow() {
     }
 
     if (shouldUpdateCurrentNote) setNoteEditInfo(newNoteEditInfo);
+    saveChangesTimerRef.current = null;
   }
 
   function handleClose() {
     window.commonElectronAPI.closeCurrentWindow();
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    const content = e.target.value;
-    const caret = e.target.selectionStart;
-
-    if (e.key === "Tab") {
-      e.preventDefault();
-      const newText =
-        content.substring(0, caret) + TAB_CHARACTER + content.substring(caret);
-      setWriteVal(newText);
-      setTextData({ caret: caret, target: e.target });
-    }
-  }
-
   return (
     <div className={styles.bgContainer}>
       <div className={styles.container}>
         <WindowTitle windowTitle={"✏️ Jotter"} onClose={handleClose} />
-        <div className={styles.toolBar}>
-          <button className={styles.buttonToolIcon}>⬅️</button>
-          <button className={styles.buttonToolIcon}>➡️</button>
-        </div>
-        <textarea
-          className={styles.textArea}
-          value={writeVal}
-          onKeyDown={handleKeyDown}
+        <NoteTakingForm
+          writeVal={writeVal}
           onChange={handleChange}
-          placeholder={"New note..."}
-          ref={textAreaRef}
+          setNoteTakingInstance={setNoteTakingFormInstance}
+          placeholder="New note..."
+          noteTakingInstance={noteTakingFormInstance}
+          onClose={handleClose}
         />
       </div>
     </div>

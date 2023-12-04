@@ -21,6 +21,8 @@ const WRITE_ELECTRON_API: WriteElectronAPI = {
     ipcRenderer.on(IPC_MESSAGE.FROM_MAIN.SEND_NOTE_FOR_EDIT, cb),
   onResetWriteWindowRequest: (cb) =>
     ipcRenderer.on(IPC_MESSAGE.FROM_MAIN.RESET_WRITE_WINDOW, cb),
+  removeNoteEditRequestListener: () =>
+    ipcRenderer.removeAllListeners(IPC_MESSAGE.FROM_MAIN.SEND_NOTE_FOR_EDIT),
   removeResetWriteWindowRequestListener: () =>
     ipcRenderer.removeAllListeners(IPC_MESSAGE.FROM_MAIN.RESET_WRITE_WINDOW),
 };

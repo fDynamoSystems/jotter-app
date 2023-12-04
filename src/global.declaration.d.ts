@@ -10,6 +10,7 @@ export type CommonElectronAPI = {
   closeCurrentWindow: () => void;
   openSettings: () => void;
   openNotesFolderPath: () => Promise<{ isError: boolean; errorMsg: string }>;
+  removeWindowFocusChangeListener: () => void;
 };
 
 export type WriteElectronAPI = {
@@ -20,6 +21,7 @@ export type WriteElectronAPI = {
     cb: (_event: any, noteEditInfo: NoteEditInfo) => void
   ) => void;
   onResetWriteWindowRequest: (cb: (_event: any) => void) => void;
+  removeNoteEditRequestListener: () => void;
   removeResetWriteWindowRequestListener: () => void;
 };
 

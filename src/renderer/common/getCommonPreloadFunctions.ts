@@ -25,6 +25,8 @@ const getCommonPreloadFunctions = (): CommonElectronAPI => {
       ipcRenderer.send(IPC_MESSAGE.FROM_RENDERER.OPEN_SETTINGS),
     openNotesFolderPath: () =>
       ipcRenderer.invoke(IPC_MESSAGE.FROM_RENDERER.OPEN_NOTES_FOLDER_PATH),
+    removeWindowFocusChangeListener: () =>
+      ipcRenderer.removeAllListeners(IPC_MESSAGE.FROM_MAIN.WINDOW_FOCUSED),
   };
 };
 
