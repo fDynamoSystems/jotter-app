@@ -1,3 +1,4 @@
+import { isOsWindows } from "@main/common/helpers";
 import { BG_COLOR_DARK, BG_COLOR_LIGHT } from "@src/common/constants";
 import { BrowserWindowConstructorOptions, nativeTheme } from "electron";
 
@@ -13,7 +14,7 @@ export const COMMON_WINDOW_SETTINGS: BrowserWindowConstructorOptions = {
   focusable: true,
   closable: true,
   maximizable: false,
-  minimizable: false,
+  minimizable: isOsWindows(),
   hasShadow: true,
   backgroundColor: nativeTheme.shouldUseDarkColors
     ? BG_COLOR_DARK

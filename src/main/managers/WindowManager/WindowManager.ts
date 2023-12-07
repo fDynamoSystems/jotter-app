@@ -534,6 +534,14 @@ export default class WindowManager extends BaseManager {
     });
   }
 
+  minimizeAllWindows() {
+    const windows = this.getAllOpenWindowsList();
+    windows.forEach((window) => {
+      window.minimize();
+      window.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: true }); // We do this to fix a full screen bug
+    });
+  }
+
   /**
    * SECTION: Focus history
    */
