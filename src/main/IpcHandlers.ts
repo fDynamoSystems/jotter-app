@@ -293,7 +293,9 @@ export default class IpcHandlers {
 
     await this.settingsManager.setNotesFolderPath(newPath);
 
-    // TODO: Reset open mode
+    // Reset open mode
+    this.windowManager.closeAllWindows();
+
     this.modeManager.switchToOpenMode();
   };
 
